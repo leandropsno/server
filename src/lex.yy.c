@@ -479,7 +479,7 @@ char *yytext;
 #include "http.tab.h"
 #include <string.h>
 #include <stdio.h>
-extern FILE *registro;
+extern FILE *logfile;
 #line 484 "lex.yy.c"
 #line 485 "lex.yy.c"
 
@@ -761,33 +761,33 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 17 "http.l"
-{ fprintf(registro, "---------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------\n\n"); strcpy(yylval.word, yytext); fprintf(registro, "%s", yytext); return COMANDO; }
+{ fprintf(logfile, "---------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------\n\n"); strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return COMMAND; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
 #line 18 "http.l"
-{ strcpy(yylval.word, yytext); fprintf(registro, "%s", yytext); return ARG; }
+{ strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return ARG; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
 #line 19 "http.l"
-{ fprintf(registro, "%s", yytext); return DOIS_PONTOS; }
+{ fprintf(logfile, "%s", yytext); return COLON; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
 #line 20 "http.l"
-{ fprintf(registro, "%s", yytext); return VIRGULA; }
+{ fprintf(logfile, "%s", yytext); return COMMA; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 21 "http.l"
-{ strcpy(yylval.word, yytext); fprintf(registro, "%s", yytext); return HOST_PORT; }
+{ strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return HOST_PORT; }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
 #line 22 "http.l"
-{ fprintf(registro, "%s", yytext); return NEWLINE; }
+{ fprintf(logfile, "%s", yytext); return NEWLINE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP

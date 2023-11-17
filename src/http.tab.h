@@ -54,12 +54,12 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    COMANDO = 258,                 /* COMANDO  */
+    COMMAND = 258,                 /* COMMAND  */
     ARG = 259,                     /* ARG  */
     HOST_PORT = 260,               /* HOST_PORT  */
-    DOIS_PONTOS = 261,             /* DOIS_PONTOS  */
+    COLON = 261,                   /* COLON  */
     NEWLINE = 262,                 /* NEWLINE  */
-    VIRGULA = 263                  /* VIRGULA  */
+    COMMA = 263                    /* COMMA  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif

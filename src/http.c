@@ -18,7 +18,7 @@
 #define OK 200
 #define INT_ERROR 500
 
-extern FILE *resposta, *registro;
+extern FILE *respfile, *logfile;
 
 Response createResponse() {
     Response resp;
@@ -131,24 +131,24 @@ void accessResource(char *path, Response *resp) {
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp->result, resp->code);
-    fprintf(resposta, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
-    fprintf(registro, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
-    fprintf(resposta, "Date: %s", resp->rdate);
-    fprintf(registro, "Date: %s", resp->rdate);
-    fprintf(resposta, "Server: %s\n", resp->server);
-    fprintf(registro, "Server: %s\n", resp->server);
-    fprintf(resposta, "Connection: %s\n", resp->connection);
-    fprintf(registro, "Connection: %s\n", resp->connection);
-    fprintf(resposta, "Last-Modified: %s", resp->lmdate);
-    fprintf(registro, "Last-Modified: %s", resp->lmdate);
-    fprintf(resposta, "Content-Length: %d\n", resp->size);
-    fprintf(registro, "Content-Length: %d\n", resp->size);
-    fprintf(resposta, "Content-Type: ??????\n");
-    fprintf(registro, "Content-Type: ??????\n");
-    fprintf(resposta, "\n");
-    fprintf(registro, "\n");
+    fprintf(respfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(logfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(respfile, "Date: %s", resp->rdate);
+    fprintf(logfile, "Date: %s", resp->rdate);
+    fprintf(respfile, "Server: %s\n", resp->server);
+    fprintf(logfile, "Server: %s\n", resp->server);
+    fprintf(respfile, "Connection: %s\n", resp->connection);
+    fprintf(logfile, "Connection: %s\n", resp->connection);
+    fprintf(respfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(logfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(respfile, "Content-Length: %d\n", resp->size);
+    fprintf(logfile, "Content-Length: %d\n", resp->size);
+    fprintf(respfile, "Content-Type: ??????\n");
+    fprintf(logfile, "Content-Type: ??????\n");
+    fprintf(respfile, "\n");
+    fprintf(logfile, "\n");
     if (resp->code == 200) {
-        fprintf(resposta, "%s\n", resp->content);
+        fprintf(respfile, "%s\n", resp->content);
     } 
 }
 

@@ -77,7 +77,7 @@
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
-extern FILE *registro;
+extern FILE *logfile;
 
 
 #line 84 "http.tab.c"
@@ -111,18 +111,18 @@ enum yysymbol_kind_t
   YYSYMBOL_YYEOF = 0,                      /* "end of file"  */
   YYSYMBOL_YYerror = 1,                    /* error  */
   YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
-  YYSYMBOL_COMANDO = 3,                    /* COMANDO  */
+  YYSYMBOL_COMMAND = 3,                    /* COMMAND  */
   YYSYMBOL_ARG = 4,                        /* ARG  */
   YYSYMBOL_HOST_PORT = 5,                  /* HOST_PORT  */
-  YYSYMBOL_DOIS_PONTOS = 6,                /* DOIS_PONTOS  */
+  YYSYMBOL_COLON = 6,                      /* COLON  */
   YYSYMBOL_NEWLINE = 7,                    /* NEWLINE  */
-  YYSYMBOL_VIRGULA = 8,                    /* VIRGULA  */
+  YYSYMBOL_COMMA = 8,                      /* COMMA  */
   YYSYMBOL_YYACCEPT = 9,                   /* $accept  */
-  YYSYMBOL_requisicoes = 10,               /* requisicoes  */
-  YYSYMBOL_requisicao = 11,                /* requisicao  */
-  YYSYMBOL_linha_comando = 12,             /* linha_comando  */
-  YYSYMBOL_linhas_parametro = 13,          /* linhas_parametro  */
-  YYSYMBOL_linha_parametro = 14            /* linha_parametro  */
+  YYSYMBOL_requests = 10,                  /* requests  */
+  YYSYMBOL_request = 11,                   /* request  */
+  YYSYMBOL_command_line = 12,              /* command_line  */
+  YYSYMBOL_param_lines = 13,               /* param_lines  */
+  YYSYMBOL_param_line = 14                 /* param_line  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -526,10 +526,9 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "\"end of file\"", "error", "\"invalid token\"", "COMANDO", "ARG",
-  "HOST_PORT", "DOIS_PONTOS", "NEWLINE", "VIRGULA", "$accept",
-  "requisicoes", "requisicao", "linha_comando", "linhas_parametro",
-  "linha_parametro", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "COMMAND", "ARG",
+  "HOST_PORT", "COLON", "NEWLINE", "COMMA", "$accept", "requests",
+  "request", "command_line", "param_lines", "param_line", YY_NULLPTR
 };
 
 static const char *
@@ -1078,44 +1077,44 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 4: /* requisicao: linha_comando NEWLINE  */
+  case 4: /* request: command_line NEWLINE  */
 #line 27 "http.y"
-                                   { enviarRequisicao((yyval.word)); }
-#line 1085 "http.tab.c"
+                               { sendRequest((yyval.word)); }
+#line 1084 "http.tab.c"
     break;
 
-  case 5: /* requisicao: linha_comando linhas_parametro NEWLINE  */
+  case 5: /* request: command_line param_lines NEWLINE  */
 #line 28 "http.y"
-                                                    { enviarRequisicao((yyval.word)); }
-#line 1091 "http.tab.c"
+                                           { sendRequest((yyval.word)); }
+#line 1090 "http.tab.c"
     break;
 
-  case 6: /* linha_comando: COMANDO NEWLINE  */
+  case 6: /* command_line: COMMAND NEWLINE  */
 #line 31 "http.y"
-                               { destrincharComando((yyvsp[-1].word)); }
-#line 1097 "http.tab.c"
+                              { splitCommand((yyvsp[-1].word)); }
+#line 1096 "http.tab.c"
     break;
 
-  case 9: /* linha_parametro: linha_parametro VIRGULA ARG  */
+  case 9: /* param_line: param_line COMMA ARG  */
 #line 37 "http.y"
-                                             { addParam(&mainList, (yyvsp[0].word)); }
-#line 1103 "http.tab.c"
+                                  { addParam(&mainList, (yyvsp[0].word)); }
+#line 1102 "http.tab.c"
     break;
 
-  case 10: /* linha_parametro: ARG DOIS_PONTOS ARG  */
+  case 10: /* param_line: ARG COLON ARG  */
 #line 38 "http.y"
-                                     { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1109 "http.tab.c"
+                           { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
+#line 1108 "http.tab.c"
     break;
 
-  case 11: /* linha_parametro: ARG DOIS_PONTOS HOST_PORT  */
+  case 11: /* param_line: ARG COLON HOST_PORT  */
 #line 39 "http.y"
-                                           { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1115 "http.tab.c"
+                                 { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
+#line 1114 "http.tab.c"
     break;
 
 
-#line 1119 "http.tab.c"
+#line 1118 "http.tab.c"
 
       default: break;
     }
@@ -1311,14 +1310,14 @@ yyreturnlab:
 #line 42 "http.y"
 
 
-void enviarRequisicao(char *requisicao) {
+void sendRequest(char *request) {
     int code = processRequisition(webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
-    fprintf(registro, "--------------------------------------------------\n\n");
+    fprintf(logfile, "--------------------------------------------------\n\n");
 }
 
-void destrincharComando(char *text) {
+void splitCommand(char *text) {
     char *tok = strtok(text, " ");
     addCommand(&mainList, tok);
     tok = strtok(NULL, " ");

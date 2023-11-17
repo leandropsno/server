@@ -7,48 +7,48 @@
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
-extern FILE *registro;
+extern FILE *logfile;
 
 %}
 
 %union {
     char word[100];
 }
-%token <word> COMANDO ARG HOST_PORT
-%token DOIS_PONTOS NEWLINE VIRGULA
-%type <word> requisicao
+%token <word> COMMAND ARG HOST_PORT
+%token COLON NEWLINE COMMA
+%type <word> request
 
 %%
 
-requisicoes : requisicoes requisicao
-            | requisicao
+requests : requests request
+         | request
+         ;
+
+request : command_line NEWLINE { sendRequest($$); }
+        | command_line param_lines NEWLINE { sendRequest($$); }
+        ;
+
+command_line: COMMAND NEWLINE { splitCommand($1); } 
+
+param_lines : param_lines param_line NEWLINE
+            | param_line NEWLINE
             ;
 
-requisicao : linha_comando NEWLINE { enviarRequisicao($$); }
-           | linha_comando linhas_parametro NEWLINE { enviarRequisicao($$); }
+param_line : param_line COMMA ARG { addParam(&mainList, $3); }
+           | ARG COLON ARG { addCommand(&mainList, $1); addParam(&mainList, $3); }
+           | ARG COLON HOST_PORT { addCommand(&mainList, $1); addParam(&mainList, $3); }
            ;
-
-linha_comando: COMANDO NEWLINE { destrincharComando($1); } 
-
-linhas_parametro : linhas_parametro linha_parametro NEWLINE
-                 | linha_parametro NEWLINE
-                 ;
-
-linha_parametro: linha_parametro VIRGULA ARG { addParam(&mainList, $3); }
-               | ARG DOIS_PONTOS ARG { addCommand(&mainList, $1); addParam(&mainList, $3); }
-               | ARG DOIS_PONTOS HOST_PORT { addCommand(&mainList, $1); addParam(&mainList, $3); }
-               ;
 
 %%
 
-void enviarRequisicao(char *requisicao) {
+void sendRequest(char *request) {
     int code = processRequisition(webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
-    fprintf(registro, "--------------------------------------------------\n\n");
+    fprintf(logfile, "--------------------------------------------------\n\n");
 }
 
-void destrincharComando(char *text) {
+void splitCommand(char *text) {
     char *tok = strtok(text, " ");
     addCommand(&mainList, tok);
     tok = strtok(NULL, " ");
