@@ -1311,7 +1311,7 @@ yyreturnlab:
 
 
 void sendRequest(char *request) {
-    int code = processRequisition(webSpacePath, mainList->paramList->parameter);
+    int code = processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
     fprintf(logfile, "--------------------------------------------------\n\n");

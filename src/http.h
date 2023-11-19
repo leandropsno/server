@@ -18,6 +18,7 @@ typedef struct Response {
     char content[MAX_CONT];
     char lmdate[MAX_PARAM];
     char type[MAX_PARAM];
+    char allow[MAX_PARAM];
 } Response;
 
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
@@ -45,4 +46,4 @@ void OPTIONS(char *path, Response *resp);
 void TRACE(char *path, Response *resp);
 
 // Monta o PATH e chama o método HTTP adequado.
-int processRequisition(char *host, char *resource);
+int processRequisition(char *method, char *host, char *resource);

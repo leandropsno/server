@@ -22,14 +22,13 @@ extern FILE *respfile, *logfile;
 
 Response createResponse() {
     Response resp;
-
     struct timeval tv;
     gettimeofday(&tv, NULL);
+
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
-
     strcpy(resp.server, "Servidor HTTP versão 1.0 de Leandro Ponsano");
-
     strcpy(resp.connection, "keep-alive");
+    strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
 
     return resp;
 }
@@ -152,16 +151,48 @@ void GET(char *path, Response *resp) {
     } 
 }
 
+void HEAD(char *path, Response *resp) {
+    accessResource(path, resp);
+    codeMsg(resp->result, resp->code);
+    fprintf(respfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(logfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(respfile, "Date: %s", resp->rdate);
+    fprintf(logfile, "Date: %s", resp->rdate);
+    fprintf(respfile, "Server: %s\n", resp->server);
+    fprintf(logfile, "Server: %s\n", resp->server);
+    fprintf(respfile, "Connection: %s\n", resp->connection);
+    fprintf(logfile, "Connection: %s\n", resp->connection);
+    fprintf(respfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(logfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(respfile, "Content-Length: %d\n", resp->size);
+    fprintf(logfile, "Content-Length: %d\n", resp->size);
+    fprintf(respfile, "Content-Type: ??????\n");
+    fprintf(logfile, "Content-Type: ??????\n");
+    fprintf(respfile, "\n");
+    fprintf(logfile, "\n");
+}
+
 void OPTIONS(char *path, Response *resp) {
-    // codeMsg(resp->result, resp->code);
-    // printf("HTTP/version %d %s\n", resp->code, resp->result);
-    // printf("Allow: GET, OPTIONS, TRACE\n");
-    // printf("Date: %s", resp->rdate);
-    // printf("Server: %s\n", resp->server);
-    // printf("Connection: %s\n", resp->connection);
-    // printf("Content-Length: %d\n", resp->len);
-    // printf("Content-Type: ??????\n");
-    printf("CABECALHO DE RESPOSTA OPTIONS");
+    accessResource(path, resp);
+    codeMsg(resp->result, resp->code);
+    fprintf(respfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(logfile, "HTTP/version %d %s\n", resp->code, resp->result);    //FIX VERSION
+    fprintf(respfile, "Allow: %s", resp->allow);
+    fprintf(logfile, "Allow: %s", resp->allow);
+    fprintf(respfile, "Date: %s", resp->rdate);
+    fprintf(logfile, "Date: %s", resp->rdate);
+    fprintf(respfile, "Server: %s\n", resp->server);
+    fprintf(logfile, "Server: %s\n", resp->server);
+    fprintf(respfile, "Connection: %s\n", resp->connection);
+    fprintf(logfile, "Connection: %s\n", resp->connection);
+    fprintf(respfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(logfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(respfile, "Content-Length: %d\n", resp->size);
+    fprintf(logfile, "Content-Length: %d\n", resp->size);
+    fprintf(respfile, "Content-Type: ??????\n");
+    fprintf(logfile, "Content-Type: ??????\n");
+    fprintf(respfile, "\n");
+    fprintf(logfile, "\n");
 }
 
 void TRACE(char *path, Response *resp) {
@@ -176,7 +207,7 @@ void TRACE(char *path, Response *resp) {
     printf("CABECALHO DE RESPOSTA TRACE");
 }
 
-int processRequisition(char *host, char *resource) {
+int processRequisition(char *method, char *host, char *resource) {
     // Monta o path para o recurso
     char path[MAX_NAME] = "";
     strcat(path, host);
@@ -184,7 +215,22 @@ int processRequisition(char *host, char *resource) {
     strcat(path, resource);
 
     Response resp = createResponse();
-    GET(path, &resp);
+    
+    if (strcmp(method, "GET") == 0) {
+       GET(path, &resp); 
+    }
+    else if (strcmp(method, "HEAD") == 0) {
+        HEAD(path, &resp);
+    }
+    else if (strcmp(method, "TRACE") == 0) {
+        TRACE(path, &resp);
+    }
+    else if (strcmp(method, "OPTIONS") == 0) {
+        OPTIONS(path, &resp);
+    }
+    else {
+
+    }
 
     return 0;
 }

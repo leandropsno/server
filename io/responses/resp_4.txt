@@ -1,0 +1,8 @@
+HTTP/version 404 Not Found
+Date: Sun Nov 19 15:32:32 2023
+Server: Servidor HTTP versão 1.0 de Leandro Ponsano
+Connection: keep-alive
+Last-Modified: Wed Sep  6 14:38:03 2023
+Content-Length: 4096
+Content-Type: ??????
+

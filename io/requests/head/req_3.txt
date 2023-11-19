@@ -1,4 +1,4 @@
-HEAD texto1.html HTTP/1.1
+HEAD dir1/texto1.html HTTP/1.1
 Host: localhost:6969
 Connection: keep-alive
 sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
