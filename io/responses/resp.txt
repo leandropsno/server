@@ -1,21 +1,4 @@
-HTTP/1.1 200 OK
-Date: Mon Nov 20 00:00:32 2023
+HTTP/1.1 403 Forbidden
+Date: Mon Nov 20 13:35:15 2023
 Server: Servidor HTTP versão 6 de Leandro Ponsano
 Connection: keep-alive
-Last-Modified: Mon Nov 20 00:00:13 2023
-Content-Length: 245
-Content-Type: text/html
-
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>index</title>
-    </head>
-    <body>
-        <h1>PAGINA INICIAL - INDICE</h1>
-        <p>Essa é a pagina inicial index.html. <br>
-        Caminho: ~/webspace/index.html.</p>
-    </body>
-</html>
-
-

@@ -21,6 +21,10 @@
 extern FILE *respfile, *logfile;
 extern CommandNode *mainList;
 
+void httpError(Response *resp) {
+    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result);
+}
+
 Response createResponse() {
     Response resp;
     struct timeval tv;
@@ -34,32 +38,33 @@ Response createResponse() {
     return resp;
 }
 
-void codeMsg(char *msg, int code) {
-    switch (code) {
+void codeMsg(Response *resp) {
+    switch (resp->code) {
         case OK:
-            strcpy(msg, "OK");
+            strcpy(resp->result, "OK");
             break;
         case NOT_FOUND:
-            strcpy(msg, "Not Found");
+            strcpy(resp->result, "Not Found");
             break;
         case FORBIDDEN:
-            strcpy(msg, "Forbidden");
+            strcpy(resp->result, "Forbidden");
             break;
         case INT_ERROR:
-            strcpy(msg, "Internal Server Error");
+            strcpy(resp->result, "Internal Server Error");
             break;
     }
 }
 
-int readContent(char *path, char *buf) {
+int readContent(char *path, Response *resp) {
     int fd;
     if ((fd = open(path, O_RDONLY)) == -1) {
-        printf("Falha na abertura de arquivo\n");
-        exit(INT_ERROR); 
+        resp->code = INT_ERROR;
+        return -1; 
     }
     ssize_t i;
-    i = read(fd, buf, MAX_CONT);
+    i = read(fd, resp->content, MAX_CONT);
     close(fd);
+    resp->code = OK;
     return i;
 }
 
@@ -80,9 +85,8 @@ void searchDir(char *path, Response *resp) {
             strcpy(resp->type, "text/html");
             if (access(filename, R_OK) == 0) {
                 // Encontrou um arquivo com permissão de leitura
-                readContent(filename, resp->content);
+                readContent(filename, resp);
                 read = 1;
-                resp->code = OK;
             }
         }
     }
@@ -116,8 +120,7 @@ void accessResource(char *path, Response *resp) {
     {
         case S_IFREG :  // Se o recurso for um arquivo regular
             strcpy(resp->type, "text/html");
-            readContent(path, resp->content);
-            resp->code = OK;
+            readContent(path, resp);
             break;
         case S_IFDIR :  // Se o recurso for um diretório
             if ((access(path, X_OK) != 0)) {    // Se não tem permissão de varredura
@@ -150,46 +153,55 @@ void flushContentHeaders(Response *resp) {
     fprintf(logfile, "Content-Type: %s\n", resp->type);
 }
 
+void flushContent(Response *resp) {
+    fprintf(respfile, "\n");
+    fprintf(logfile, "\n");
+    fprintf(respfile, "%s\n", resp->content);
+}
+
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
-    codeMsg(resp->result, resp->code);
+    codeMsg(resp);
     flushCommonHeader(resp);
     if (resp->code == 200) {
         flushContentHeaders(resp);
-        fprintf(respfile, "\n");
-        fprintf(logfile, "\n");
-        fprintf(respfile, "%s\n", resp->content);
-    } 
+    }
+    else {
+        httpError(resp);
+    }
+    flushContent(resp);
 }
 
 void HEAD(char *path, Response *resp) {
     accessResource(path, resp);
-    codeMsg(resp->result, resp->code);
+    codeMsg(resp);
     flushCommonHeader(resp);
     if (resp->code == 200) {
         flushContentHeaders(resp);
+    }
+    else {
+        httpError(resp);
     }
 }
 
 void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
-    codeMsg(resp->result, resp->code);
+    codeMsg(resp);
     fprintf(respfile, "Allow: %s\n", resp->allow);
     fprintf(logfile, "Allow: %s\n", resp->allow);
+    flushCommonHeader(resp);
     fprintf(respfile, "\n");
     fprintf(logfile, "\n");
 }
 
 void TRACE(char *path, Response *resp) {
     resp->code = OK;
-    codeMsg(resp->result, resp->code);
+    codeMsg(resp);
     printOriginal(resp->content, mainList);
     strcpy(resp->type, "message/html");
     fprintf(respfile, "Content-Type: %s\n", resp->type);
     fprintf(logfile, "Content-Type: %s\n", resp->type);
-    fprintf(respfile, "\n");
-    fprintf(logfile, "\n");
-    fprintf(respfile, "%s\n", resp->content);
+    flushContent(resp);
 }
 
 int processRequisition(char *method, char *host, char *resource) {
@@ -216,4 +228,3 @@ int processRequisition(char *method, char *host, char *resource) {
 
     return 0;
 }
-

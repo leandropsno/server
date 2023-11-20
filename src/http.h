@@ -17,8 +17,10 @@ typedef struct Response {
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
 Response createResponse();
 
+void httpError(Response *resp);
+
 // Armazena em BUF o conteúdo de um recurso em PATH.
-int readContent(char *path, char *buf);
+int readContent(char *path, Response *resp);
 
 // Percorre o diretório buscando os arquivos padrão (index.html e welcome.html).
 void searchDir(char *path, Response *resp);
@@ -26,14 +28,17 @@ void searchDir(char *path, Response *resp);
 // Acessa as estatísticas do recurso em PATH, preenche parâmetros e conteúdo da resposta.
 void accessResource(char *path, Response *resp);
 
-// Guarda em MSG a mensagem correspondente a CODE.
-void codeMsg(char *msg, int code);
+// Guarda em RESULT a mensagem correspondente a CODE.
+void codeMsg(Response *resp);
 
-// Prints, both in response file and log file, the response common header fields (code, date, server, connection).
+// Imprime, no arquivo de resposta e de registro, os campos de cabeçalho comuns (code, date, server, connection).
 void flushCommonHeader(Response *resp);
 
-// Prints, both in response file and log file, the response header fields related to content (last-modified, type, length).
+// Imprime, no arquivo de resposta e de registro, os campos de cabeçalho relacionados a conteúdo. (last-modified, type, length).
 void flushContentHeaders(Response *resp);
+
+// Imprime o conteúdo da resposta.
+void flushContent(Response *resp);
 
 // Monta a resposta referente a uma requisição do tipo GET.
 void GET(char *path, Response *resp);
