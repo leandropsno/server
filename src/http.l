@@ -2,7 +2,7 @@
 #include "http.tab.h"
 #include <string.h>
 #include <stdio.h>
-extern FILE *logfile;
+extern int logfile;
 %}
 
 COMMAND     (GET|HEAD|OPTIONS|TRACE)[ ][^ :,\t\r\n]+[ ][^ :,\t\r\n]+
@@ -14,12 +14,17 @@ NEWLINE     (\r\n)
 
 %%
 
-{COMMAND}		{ fprintf(logfile, "---------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------\n\n"); strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return COMMAND; }
-{ARG}           { strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return ARG; }
-{COLON}         { fprintf(logfile, "%s", yytext); return COLON; }
-{COMMA}         { fprintf(logfile, "%s", yytext); return COMMA; }
-{HOST_PORT}     { strcpy(yylval.word, yytext); fprintf(logfile, "%s", yytext); return HOST_PORT; }
-{NEWLINE}       { fprintf(logfile, "%s", yytext); return NEWLINE; }
+{COMMAND}		{
+                    write(logfile, "---------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------\n\n", 52);
+                    strcpy(yylval.word, yytext);
+                    write(logfile, yytext, yyleng); 
+                    return COMMAND;
+                }
+{ARG}           { strcpy(yylval.word, yytext); write(logfile, yytext, yyleng); return ARG; }
+{COLON}         { write(logfile, yytext, yyleng); return COLON; }
+{COMMA}         { write(logfile, yytext, yyleng); return COMMA; }
+{HOST_PORT}     { strcpy(yylval.word, yytext); write(logfile, yytext, yyleng); return HOST_PORT; }
+{NEWLINE}       { write(logfile, yytext, yyleng); return NEWLINE; }
 .               ;
 
 %%

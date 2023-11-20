@@ -45,7 +45,7 @@ void sendRequest(char *request) {
     int code = processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
-    fprintf(logfile, "--------------------------------------------------\n\n");
+    write(logfile, "--------------------------------------------------\n\n", 52);
 }
 
 void splitCommand(char *text) {

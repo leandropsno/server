@@ -1,24 +1,49 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "http.h"
 #include "lists.h"
 
 CommandNode* mainList = NULL;
-extern FILE *yyin;
-FILE *logfile, *respfile;
+int logfile;
 char webSpacePath[50];
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        printf("Uso: ./servidor <WebSpace> req_N.txt resp_N.txt logfile.txt\n");
+        printf("Uso: ./servidor <WebSpace> IP_Address Port_Number\n");
         exit(1);
     }
-    yyin = fopen(argv[2], "r");  // Abre o arquivo de entrada req_N.txt
-    respfile = fopen(argv[3], "w+"); // Abre o arquivo de saída resp_N.txt
-    logfile = fopen(argv[4], "a"); // Abre o arquivo de logfile logfile.txt
+
+    int socket = connect2Server(argv[2], argv[3]);
+    logfile = open("io/log.txt", O_CREAT | O_APPEND, 00700); 
     strcpy(webSpacePath, argv[1]);
+
+    char requestMessage[MAX_CONT], responseMessage[MAX_CONT];
+
+    int i, j, k, wr = 0;
+    do {
+        i = read(socket, requestMessage, 1024);
+        if (i < 0) {
+            // FIX ME
+        }
+        yy_scan_string(requestMessage);
+        write(0, msg_volta, i);
+        if (!wr) {
+            if ((j = search_content(msg_volta)) >= 0) {
+                wr = 1;
+                k = write(registro, &msg_volta[j], i-j);
+            }  
+        }
+        else k = write(registro, msg_volta, i);
+    } while (i >= 1024);
     yyparse();
+    
+    close(socket);
     fclose(yyin);
     fclose(respfile);
     fclose(logfile);

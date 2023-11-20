@@ -7,6 +7,9 @@
 #include <time.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "http.h"
 #include "lists.h"
 
@@ -31,7 +34,7 @@ Response createResponse() {
     gettimeofday(&tv, NULL);
 
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
-    strcpy(resp.server, "Servidor HTTP versão 6 de Leandro Ponsano");
+    strcpy(resp.server, "Servidor HTTP versão 8 de Leandro Ponsano");
     strcpy(resp.connection, "keep-alive");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
 
@@ -134,29 +137,20 @@ void accessResource(char *path, Response *resp) {
 }
 
 void flushCommonHeader(Response *resp) {
-    fprintf(respfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
-    fprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
-    fprintf(respfile, "Date: %s", resp->rdate);
-    fprintf(logfile, "Date: %s", resp->rdate);
-    fprintf(respfile, "Server: %s\n", resp->server);
-    fprintf(logfile, "Server: %s\n", resp->server);
-    fprintf(respfile, "Connection: %s\n", resp->connection);
-    fprintf(logfile, "Connection: %s\n", resp->connection);
+    dprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
+    dprintf(logfile, "Date: %s", resp->rdate);
+    dprintf(logfile, "Server: %s\n", resp->server);    
+    dprintf(logfile, "Connection: %s\n", resp->connection);
 }
 
-void flushContentHeaders(Response *resp) {
-    fprintf(respfile, "Last-Modified: %s", resp->lmdate);
-    fprintf(logfile, "Last-Modified: %s", resp->lmdate);
-    fprintf(respfile, "Content-Length: %d\n", resp->size);
-    fprintf(logfile, "Content-Length: %d\n", resp->size);
-    fprintf(respfile, "Content-Type: %s\n", resp->type);
-    fprintf(logfile, "Content-Type: %s\n", resp->type);
+void flushContentHeaders(Response *resp) {   
+    dprintf(logfile, "Last-Modified: %s", resp->lmdate);   
+    dprintf(logfile, "Content-Length: %d\n", resp->size);   
+    dprintf(logfile, "Content-Type: %s\n", resp->type);
 }
 
-void flushContent(Response *resp) {
-    fprintf(respfile, "\n");
-    fprintf(logfile, "\n");
-    fprintf(respfile, "%s\n", resp->content);
+void flushContent(Response *resp) {  
+    dprintf(logfile, "\n");  
 }
 
 void GET(char *path, Response *resp) {
@@ -187,11 +181,9 @@ void HEAD(char *path, Response *resp) {
 void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    fprintf(respfile, "Allow: %s\n", resp->allow);
-    fprintf(logfile, "Allow: %s\n", resp->allow);
+    dprintf(logfile, "Allow: %s\n", resp->allow);
     flushCommonHeader(resp);
-    fprintf(respfile, "\n");
-    fprintf(logfile, "\n");
+    dprintf(logfile, "\n");
 }
 
 void TRACE(char *path, Response *resp) {
@@ -199,12 +191,11 @@ void TRACE(char *path, Response *resp) {
     codeMsg(resp);
     printOriginal(resp->content, mainList);
     strcpy(resp->type, "message/html");
-    fprintf(respfile, "Content-Type: %s\n", resp->type);
-    fprintf(logfile, "Content-Type: %s\n", resp->type);
+    dprintf(logfile, "Content-Type: %s\n", resp->type);
     flushContent(resp);
 }
 
-int processRequisition(char *method, char *host, char *resource) {
+void processRequisition(char *method, char *host, char *resource) {
     // Monta o path para o recurso
     char path[MAX_NAME] = "";
     strcat(path, host);
@@ -225,6 +216,18 @@ int processRequisition(char *method, char *host, char *resource) {
     else if (strcmp(method, "OPTIONS") == 0) {
         OPTIONS(path, &resp);
     }
+}
 
-    return 0;
+int connect2Server(char *IPaddr, char *PortNumber) {
+    int sock;
+    struct sockaddr_in destino;
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    destino.sin_family = AF_INET;
+    destino.sin_port = htons(atoi(PortNumber));
+    inet_aton(IPaddr, (struct in_addr *)&destino.sin_addr.s_addr);
+    int result = connect(sock, (struct sockaddr*)&destino, sizeof(destino));
+    if (result < 0) {
+        // FIX ME
+    }
+    return sock;
 }
