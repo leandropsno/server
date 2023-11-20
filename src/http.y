@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "http.h"
 #include "lists.h"
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
-extern FILE *logfile;
+extern int logfile;
 
 %}
 
@@ -42,7 +43,7 @@ param_line : param_line COMMA ARG { addParam(&mainList, $3); }
 %%
 
 void sendRequest(char *request) {
-    int code = processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
+    processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
     write(logfile, "--------------------------------------------------\n\n", 52);

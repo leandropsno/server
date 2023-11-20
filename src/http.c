@@ -21,7 +21,7 @@
 #define OK 200
 #define INT_ERROR 500
 
-extern FILE *respfile, *logfile;
+extern int logfile;
 extern CommandNode *mainList;
 
 void httpError(Response *resp) {

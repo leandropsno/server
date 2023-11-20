@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -13,39 +15,38 @@ CommandNode* mainList = NULL;
 int logfile;
 char webSpacePath[50];
 
+void build_GET_requisition(char *req) {
+    strcpy(req, "GET / HTTP/1.1\r\nHost: example.org\r\n\r\n");
+}
+
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        printf("Uso: ./servidor <WebSpace> IP_Address Port_Number\n");
+    if (argc < 2) {
+        printf("Uso: ./servidor IP_Address Port_Number\n");
         exit(1);
     }
 
-    int socket = connect2Server(argv[2], argv[3]);
-    logfile = open("io/log.txt", O_CREAT | O_APPEND, 00700); 
+    int socket = connect2Server(argv[1], argv[2]);
+    logfile = open("io/log.txt", O_CREAT | O_RDWR | O_APPEND, 00700); 
     strcpy(webSpacePath, argv[1]);
 
     char requestMessage[MAX_CONT], responseMessage[MAX_CONT];
-
-    int i, j, k, wr = 0;
+    build_GET_requisition(requestMessage);
+    write(socket, requestMessage, strlen(requestMessage));
+    int i, j;
     do {
-        i = read(socket, requestMessage, 1024);
-        if (i < 0) {
-            // FIX ME
+        i = read(socket, responseMessage, 1024);
+        // if (i < 0) {
+        //     // FIX ME
+        // }
+        // // yy_scan_string(requestMessage);
+        j = write(logfile, responseMessage, i);
+        if (j < 0) {
+            perror("error: ");
         }
-        yy_scan_string(requestMessage);
-        write(0, msg_volta, i);
-        if (!wr) {
-            if ((j = search_content(msg_volta)) >= 0) {
-                wr = 1;
-                k = write(registro, &msg_volta[j], i-j);
-            }  
-        }
-        else k = write(registro, msg_volta, i);
     } while (i >= 1024);
-    yyparse();
+    // yyparse();
     
     close(socket);
-    fclose(yyin);
-    fclose(respfile);
-    fclose(logfile);
+    close(logfile);
     return 0;
 }

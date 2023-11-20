@@ -1,314 +1,60 @@
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET index.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
 HTTP/1.1 200 OK
-Date: Sun Nov 19 23:59:11 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-Last-Modified: Wed Sep  6 14:54:42 2023
-Content-Length: 245
-Content-Type: text/html
+Accept-Ranges: bytes
+Age: 496640
+Cache-Control: max-age=604800
+Content-Type: text/html; charset=UTF-8
+Date: Mon, 20 Nov 2023 20:15:43 GMT
+Etag: "3147526947+gzip"
+Expires: Mon, 27 Nov 2023 20:15:43 GMT
+Last-Modified: Thu, 17 Oct 2019 07:18:26 GMT
+Server: ECS (mic/9A9D)
+Vary: Accept-Encoding
+X-Cache: HIT
+Content-Length: 1256
 
---------------------------------------------------
+<!doctype html>
+<html>
+<head>
+    <title>Example Domain</title>
 
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type="text/css">
+    body {
+        background-color: #f0f0f2;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        
+    }
+    div {
+        width: 600px;
+        margin: 5em auto;
+        padding: 2em;
+        background-color: #fdfdff;
+        border-radius: 0.5em;
+        box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.02);
+    }
+    a:link, a:visited {
+        color: #38488f;
+        text-decoration: none;
+    }
+    @media (max-width: 700px) {
+        div {
+            margin: 0 auto;
+            width: auto;
+        }
+    }
+    </style>    
+</head>
 
-GET index.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 200 OK
-Date: Mon Nov 20 00:00:32 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-Last-Modified: Mon Nov 20 00:00:13 2023
-Content-Length: 245
-Content-Type: text/html
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET index.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 200 OK
-Date: Mon Nov 20 13:29:15 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-Last-Modified: Mon Nov 20 00:00:13 2023
-Content-Length: 245
-Content-Type: text/html
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1 HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 404 Not Found
-Date: Mon Nov 20 13:29:54 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1 HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 404 Not Found
-Date: Mon Nov 20 13:31:04 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1/dir11 HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 404 Not Found
-Date: Mon Nov 20 13:31:31 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1/texto1.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 200 OK
-Date: Mon Nov 20 13:31:55 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-Last-Modified: Wed Sep  6 14:57:12 2023
-Content-Length: 239
-Content-Type: text/html
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1/texto2.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 403 Forbidden
-Date: Mon Nov 20 13:32:11 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1/texto2.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 403 Forbidden
-Date: Mon Nov 20 13:33:38 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET dir1/texto2.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 403 Forbidden
-Date: Mon Nov 20 13:34:53 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
-
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-HEAD dir1/texto2.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 403 Forbidden
-Date: Mon Nov 20 13:35:15 2023
-Server: Servidor HTTP versão 6 de Leandro Ponsano
-Connection: keep-alive
---------------------------------------------------
-
----------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------
-
-GET index.html HTTP/1.1
-Host: localhost:6969
-Connection: keep-alive
-sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Opera";v="102"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "Linux"
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Sec-Fetch-Site: none
-Sec-Fetch-Mode: navigate
-Sec-Fetch-User: ?1
-Sec-Fetch-Dest: document
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.9
-
-HTTP/1.1 200 OK
-Date: Mon Nov 20 15:25:22 2023
-Server: Servidor HTTP versão 8 de Leandro Ponsano
-Connection: keep-alive
-Last-Modified: Mon Nov 20 00:00:13 2023
-Content-Length: 245
-Content-Type: text/html
-
---------------------------------------------------
-
+<body>
+<div>
+    <h1>Example Domain</h1>
+    <p>This domain is for use in illustrative examples in documents. You may use this
+    domain in literature without prior coordination or asking for permission.</p>
+    <p><a href="https://www.iana.org/domains/example">More information...</a></p>
+</div>
+</body>
+</html>
