@@ -11,7 +11,6 @@
 #include "lists.h"
 
 #define MAX_REQ 1024
-#define MAX_CONT 4096
 #define MAX_NAME 128
 #define MAX_CMD 8
 #define NOT_FOUND 404
@@ -131,11 +130,7 @@ void accessResource(char *path, Response *resp) {
     }
 }
 
-
-
-void GET(char *path, Response *resp) {
-    accessResource(path, resp);
-    codeMsg(resp->result, resp->code);
+void flushCommonHeader(Response *resp) {
     fprintf(respfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
     fprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
     fprintf(respfile, "Date: %s", resp->rdate);
@@ -144,13 +139,23 @@ void GET(char *path, Response *resp) {
     fprintf(logfile, "Server: %s\n", resp->server);
     fprintf(respfile, "Connection: %s\n", resp->connection);
     fprintf(logfile, "Connection: %s\n", resp->connection);
+}
+
+void flushContentHeaders(Response *resp) {
+    fprintf(respfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(logfile, "Last-Modified: %s", resp->lmdate);
+    fprintf(respfile, "Content-Length: %d\n", resp->size);
+    fprintf(logfile, "Content-Length: %d\n", resp->size);
+    fprintf(respfile, "Content-Type: %s\n", resp->type);
+    fprintf(logfile, "Content-Type: %s\n", resp->type);
+}
+
+void GET(char *path, Response *resp) {
+    accessResource(path, resp);
+    codeMsg(resp->result, resp->code);
+    flushCommonHeader(resp);
     if (resp->code == 200) {
-        fprintf(respfile, "Last-Modified: %s", resp->lmdate);
-        fprintf(logfile, "Last-Modified: %s", resp->lmdate);
-        fprintf(respfile, "Content-Length: %d\n", resp->size);
-        fprintf(logfile, "Content-Length: %d\n", resp->size);
-        fprintf(respfile, "Content-Type: %s\n", resp->type);
-        fprintf(logfile, "Content-Type: %s\n", resp->type);
+        flushContentHeaders(resp);
         fprintf(respfile, "\n");
         fprintf(logfile, "\n");
         fprintf(respfile, "%s\n", resp->content);
@@ -160,37 +165,17 @@ void GET(char *path, Response *resp) {
 void HEAD(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp->result, resp->code);
-    fprintf(respfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
-    fprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);   
-    fprintf(respfile, "Date: %s", resp->rdate);
-    fprintf(logfile, "Date: %s", resp->rdate);
-    fprintf(respfile, "Server: %s\n", resp->server);
-    fprintf(logfile, "Server: %s\n", resp->server);
-    fprintf(respfile, "Connection: %s\n", resp->connection);
-    fprintf(logfile, "Connection: %s\n", resp->connection);
+    flushCommonHeader(resp);
     if (resp->code == 200) {
-        fprintf(respfile, "Last-Modified: %s", resp->lmdate);
-        fprintf(logfile, "Last-Modified: %s", resp->lmdate);
-        fprintf(respfile, "Content-Length: %d\n", resp->size);
-        fprintf(logfile, "Content-Length: %d\n", resp->size);
-        fprintf(respfile, "Content-Type: %s\n", resp->type);
-        fprintf(logfile, "Content-Type: %s\n", resp->type);
+        flushContentHeaders(resp);
     }
 }
 
 void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp->result, resp->code);
-    fprintf(respfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);  
-    fprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
     fprintf(respfile, "Allow: %s\n", resp->allow);
     fprintf(logfile, "Allow: %s\n", resp->allow);
-    fprintf(respfile, "Date: %s", resp->rdate);
-    fprintf(logfile, "Date: %s", resp->rdate);
-    fprintf(respfile, "Server: %s\n", resp->server);
-    fprintf(logfile, "Server: %s\n", resp->server);
-    fprintf(respfile, "Connection: %s\n", resp->connection);
-    fprintf(logfile, "Connection: %s\n", resp->connection);
     fprintf(respfile, "\n");
     fprintf(logfile, "\n");
 }
@@ -199,16 +184,9 @@ void TRACE(char *path, Response *resp) {
     resp->code = OK;
     codeMsg(resp->result, resp->code);
     printOriginal(resp->content, mainList);
-    fprintf(respfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
-    fprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result); 
-    fprintf(respfile, "Date: %s", resp->rdate);
-    fprintf(logfile, "Date: %s", resp->rdate);
-    fprintf(respfile, "Server: %s\n", resp->server);
-    fprintf(logfile, "Server: %s\n", resp->server);
-    fprintf(respfile, "Connection: %s\n", resp->connection);
-    fprintf(logfile, "Connection: %s\n", resp->connection);
-    fprintf(respfile, "Content-Type: message/html\n");
-    fprintf(logfile, "Content-Type: message/html\n");
+    strcpy(resp->type, "message/html");
+    fprintf(respfile, "Content-Type: %s\n", resp->type);
+    fprintf(logfile, "Content-Type: %s\n", resp->type);
     fprintf(respfile, "\n");
     fprintf(logfile, "\n");
     fprintf(respfile, "%s\n", resp->content);

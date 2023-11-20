@@ -1,12 +1,5 @@
-#define MAX_REQ 1024
-#define MAX_CONT 4096
-#define MAX_NAME 128
-#define MAX_CMD 8
 #define MAX_PARAM 64
-#define NOT_FOUND 404
-#define FORBIDDEN 403
-#define OK 200
-#define INT_ERROR 500
+#define MAX_CONT 4096
 
 typedef struct Response {
     int code;
@@ -35,6 +28,12 @@ void accessResource(char *path, Response *resp);
 
 // Guarda em MSG a mensagem correspondente a CODE.
 void codeMsg(char *msg, int code);
+
+// Prints, both in response file and log file, the response common header fields (code, date, server, connection).
+void flushCommonHeader(Response *resp);
+
+// Prints, both in response file and log file, the response header fields related to content (last-modified, type, length).
+void flushContentHeaders(Response *resp);
 
 // Monta a resposta referente a uma requisição do tipo GET.
 void GET(char *path, Response *resp);
