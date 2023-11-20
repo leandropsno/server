@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Allow: GET, HEAD, OPTIONS, TRACE
+Date: Sun Nov 19 16:29:44 2023
+Server: Servidor HTTP versão 6 de Leandro Ponsano
+Connection: keep-alive
+

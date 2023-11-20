@@ -62,6 +62,21 @@ void addCommand(CommandNode** ini, char* command) {
     }
 }
 
+void printOriginal(char *buf, CommandNode* ini) {
+    int w = sprintf(buf, "%s %s %s\n", ini->command, ini->paramList->parameter, ini->paramList->next->parameter);
+    CommandNode* currentCommand = ini->next;
+    while (currentCommand != NULL) {
+        w += sprintf(&buf[w], "%s:", currentCommand->command);
+        ParamNode* currentParam = currentCommand->paramList;
+        while (currentParam != NULL) {
+            w += sprintf(&buf[w], " %s", currentParam->parameter);
+            currentParam = currentParam->next;
+        }
+        w += sprintf(&buf[w], "\n");
+        currentCommand = currentCommand->next;
+    }
+}
+
 void printCommandList(CommandNode* ini) {
     printf("-------------- NOVO PAR REQUISICAO/RESPOSTA -------------\n");
     CommandNode* currentCommand = ini;

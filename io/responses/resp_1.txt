@@ -1,0 +1,21 @@
+HTTP/version 200 OK
+Date: Fri Nov 17 10:52:32 2023
+Server: Servidor HTTP versão 1.0 de Leandro Ponsano
+Connection: keep-alive
+Last-Modified: Fri Nov 17 10:42:44 2023
+Content-Length: 245
+Content-Type: ??????
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>index</title>
+    </head>
+    <body>
+        <h1>PAGINA INICIAL - INDICE</h1>
+        <p>Essa é a pagina inicial index.html. <br>
+        Caminho: ~/webspace/index.html.</p>
+    </body>
+</html>
+
+

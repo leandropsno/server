@@ -21,6 +21,9 @@ void addParam(CommandNode** cmd, char* parameter);
 // Adiciona um nó de comando no final de uma lista de comandos.
 void addCommand(CommandNode** ini, char* command);
 
+// Recria e armazena em buf a sequência de caracteres que originou a lista.
+void printOriginal(char *buf, CommandNode* ini);
+
 // Imprime uma lista de comandos.
 void printCommandList(CommandNode* ini);
 
