@@ -8,7 +8,6 @@
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
-extern int logfile;
 
 %}
 
@@ -46,7 +45,6 @@ void sendRequest(char *request) {
     processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
-    write(logfile, "--------------------------------------------------\n\n", 52);
 }
 
 void splitCommand(char *text) {

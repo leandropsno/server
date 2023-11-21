@@ -13,7 +13,6 @@
 #include "http.tab.h"
 
 CommandNode* mainList = NULL;
-int logfile;
 char webSpacePath[50];
 int connectionSocket, messageSocket;
 
@@ -48,12 +47,9 @@ int main(int argc, char **argv) {
         yy_scan_string(requestMessage);
         yyparse();
 
-        dprintf(logfile, "\nMensagem recebida:\n");
-        for(i = 0; i < msgLen; i++) dprintf(logfile, "%c", requestMessage[i]);
         shutdown(messageSocket, SHUT_RDWR);
     } while (msgLen == 0);
 
     shutdown(connectionSocket, SHUT_RDWR); 
-    close(logfile);
     return 0;
 }

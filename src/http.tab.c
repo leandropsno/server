@@ -78,10 +78,9 @@
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
-extern int logfile;
 
 
-#line 85 "http.tab.c"
+#line 84 "http.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -510,8 +509,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    24,    24,    25,    28,    29,    32,    34,    35,    38,
-      39,    40
+       0,    23,    23,    24,    27,    28,    31,    33,    34,    37,
+      38,    39
 };
 #endif
 
@@ -1079,43 +1078,43 @@ yyreduce:
   switch (yyn)
     {
   case 4: /* request: command_line NEWLINE  */
-#line 28 "http.y"
+#line 27 "http.y"
                                { sendRequest((yyval.word)); }
-#line 1085 "http.tab.c"
+#line 1084 "http.tab.c"
     break;
 
   case 5: /* request: command_line param_lines NEWLINE  */
-#line 29 "http.y"
+#line 28 "http.y"
                                            { sendRequest((yyval.word)); }
-#line 1091 "http.tab.c"
+#line 1090 "http.tab.c"
     break;
 
   case 6: /* command_line: COMMAND NEWLINE  */
-#line 32 "http.y"
+#line 31 "http.y"
                               { splitCommand((yyvsp[-1].word)); }
-#line 1097 "http.tab.c"
+#line 1096 "http.tab.c"
     break;
 
   case 9: /* param_line: param_line COMMA ARG  */
-#line 38 "http.y"
+#line 37 "http.y"
                                   { addParam(&mainList, (yyvsp[0].word)); }
-#line 1103 "http.tab.c"
+#line 1102 "http.tab.c"
     break;
 
   case 10: /* param_line: ARG COLON ARG  */
-#line 39 "http.y"
+#line 38 "http.y"
                            { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1109 "http.tab.c"
+#line 1108 "http.tab.c"
     break;
 
   case 11: /* param_line: ARG COLON HOST_PORT  */
-#line 40 "http.y"
+#line 39 "http.y"
                                  { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1115 "http.tab.c"
+#line 1114 "http.tab.c"
     break;
 
 
-#line 1119 "http.tab.c"
+#line 1118 "http.tab.c"
 
       default: break;
     }
@@ -1308,14 +1307,13 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 43 "http.y"
+#line 42 "http.y"
 
 
 void sendRequest(char *request) {
     processRequisition(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
-    write(logfile, "--------------------------------------------------\n\n", 52);
 }
 
 void splitCommand(char *text) {

@@ -479,9 +479,8 @@ char *yytext;
 #include "http.tab.h"
 #include <string.h>
 #include <stdio.h>
-extern int logfile;
+#line 483 "lex.yy.c"
 #line 484 "lex.yy.c"
-#line 485 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -698,10 +697,10 @@ YY_DECL
 		}
 
 	{
-#line 15 "http.l"
+#line 14 "http.l"
 
 
-#line 705 "lex.yy.c"
+#line 704 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -760,51 +759,46 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 17 "http.l"
-{
-                    write(logfile, "---------- NOVO PAR REQUISIÇÃO/RESPOSTA ----------\n\n", 52);
-                    strcpy(yylval.word, yytext);
-                    write(logfile, yytext, yyleng); 
-                    return COMMAND;
-                }
+#line 16 "http.l"
+{ strcpy(yylval.word, yytext); return COMMAND;  }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 23 "http.l"
-{ strcpy(yylval.word, yytext); write(logfile, yytext, yyleng); return ARG; }
+#line 17 "http.l"
+{ strcpy(yylval.word, yytext); return ARG; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 24 "http.l"
-{ write(logfile, yytext, yyleng); return COLON; }
+#line 18 "http.l"
+{ return COLON; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 25 "http.l"
-{ write(logfile, yytext, yyleng); return COMMA; }
+#line 19 "http.l"
+{ return COMMA; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 26 "http.l"
-{ strcpy(yylval.word, yytext); write(logfile, yytext, yyleng); return HOST_PORT; }
+#line 20 "http.l"
+{ strcpy(yylval.word, yytext);  return HOST_PORT; }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 27 "http.l"
-{ write(logfile, yytext, yyleng); return NEWLINE; }
+#line 21 "http.l"
+{ return NEWLINE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 28 "http.l"
+#line 22 "http.l"
 ;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 30 "http.l"
+#line 24 "http.l"
 ECHO;
 	YY_BREAK
-#line 808 "lex.yy.c"
+#line 802 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1809,7 +1803,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 30 "http.l"
+#line 24 "http.l"
 
 
 

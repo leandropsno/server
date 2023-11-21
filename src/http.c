@@ -104,6 +104,27 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
+int checkPath(char *path) {
+    char str[strlen(path)];
+    strcpy(str, path);
+    int counter = 0;
+    char *dir = strtok(str, "/");
+    while (dir != NULL) {
+        if (strcmp(dir, "..") == 0) {
+            counter--;
+        }
+        else if ((strcmp(dir, "") == 0) || (strcmp(dir, ".") == 0));
+        else {
+            counter++;
+        }
+        if (counter < 0) {
+            break;
+        }
+        dir = strtok(NULL, "/");
+    }
+    return counter;
+}
+
 void accessResource(char *path, Response *resp) {
 
     struct stat resource_stats;
@@ -160,7 +181,6 @@ void flushContent(Response *resp) {
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    dprintf(logfile, "\nMensagem Envidada:\n");
     flushCommonHeader(resp);
     if (resp->code == 200) {
         flushContentHeaders(resp);
@@ -186,9 +206,9 @@ void HEAD(char *path, Response *resp) {
 void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    dprintf(logfile, "Allow: %s\n", resp->allow);
+    dprintf(messageSocket, "Allow: %s\n", resp->allow);
     flushCommonHeader(resp);
-    dprintf(logfile, "\n");
+    dprintf(messageSocket, "\n");
 }
 
 void TRACE(char *path, Response *resp) {
@@ -196,18 +216,22 @@ void TRACE(char *path, Response *resp) {
     codeMsg(resp);
     printOriginal(resp->content, mainList);
     strcpy(resp->type, "message/html");
-    dprintf(logfile, "Content-Type: %s\n", resp->type);
+    dprintf(messageSocket, "Content-Type: %s\n", resp->type);
     flushContent(resp);
 }
 
 void processRequisition(char *method, char *host, char *resource) {
+    Response resp = createResponse();
+    
+    if (checkPath(&resource[1]) < 0) {      // Se o recurso está fora do webspace
+        resp.code = FORBIDDEN;
+        return;
+    }
+
     // Monta o path para o recurso
     char path[MAX_NAME] = "";
     strcat(path, host);
-    strcat(path, "/");
     strcat(path, resource);
-
-    Response resp = createResponse();
     
     if (strcmp(method, "GET") == 0) {
        GET(path, &resp); 

@@ -68,7 +68,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 15 "http.y"
+#line 14 "http.y"
 
     char word[100];
 
