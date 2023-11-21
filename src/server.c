@@ -23,8 +23,6 @@ int main(int argc, char **argv) {
         printf("Uso: ./servidor <web_space_path> <port_number>\n");
         exit(1);
     }
-    
-    logfile = open("io/log.txt", O_CREAT | O_RDWR | O_APPEND, 00700); 
     strcpy(webSpacePath, argv[1]);
 
     connectionSocket = connectSocket(argv[2]);
@@ -41,7 +39,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in cliente;
     unsigned int msgLen, nameLen;
 
-    while (1) {
+    do {
         nameLen = sizeof(cliente);
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
 
@@ -53,7 +51,7 @@ int main(int argc, char **argv) {
         dprintf(logfile, "\nMensagem recebida:\n");
         for(i = 0; i < msgLen; i++) dprintf(logfile, "%c", requestMessage[i]);
         shutdown(messageSocket, SHUT_RDWR);
-    }
+    } while (msgLen == 0);
 
     shutdown(connectionSocket, SHUT_RDWR); 
     close(logfile);
