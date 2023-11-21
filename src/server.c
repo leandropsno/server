@@ -20,33 +20,47 @@ void build_GET_requisition(char *req) {
 }
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        printf("Uso: ./servidor IP_Address Port_Number\n");
+
+    if (argc < 1) {
+        printf("Uso: ./servidor Port_Number\n");
         exit(1);
     }
-
-    int socket = connect2Server(argv[1], argv[2]);
+    
     logfile = open("io/log.txt", O_CREAT | O_RDWR | O_APPEND, 00700); 
     strcpy(webSpacePath, argv[1]);
 
+    int socket = connectSocket(argv[1]);
+    if (socket > 0) {
+        printf("%s aceitando conexões\n", argv[1]);
+    }
+    else {
+        perror("Error in connection");
+        exit(1);
+    }
+
     char requestMessage[MAX_CONT], responseMessage[MAX_CONT];
-    build_GET_requisition(requestMessage);
-    write(socket, requestMessage, strlen(requestMessage));
     int i, j;
-    do {
-        i = read(socket, responseMessage, 1024);
-        // if (i < 0) {
-        //     // FIX ME
-        // }
-        // // yy_scan_string(requestMessage);
-        j = write(logfile, responseMessage, i);
-        if (j < 0) {
-            perror("error: ");
-        }
-    } while (i >= 1024);
-    // yyparse();
-    
-    close(socket);
+    struct sockaddr_in cliente;
+    unsigned int msgLen, nameLen;
+    int newSocket;
+
+    while (1) {
+        nameLen = sizeof(cliente);
+        newSocket = accept(socket, (struct sockaddr *)&cliente, &nameLen);
+
+        msgLen = read(newSocket, requestMessage, sizeof(requestMessage));
+        
+        yy_scan_string(requestMessage);
+        yyparse();
+        yy_delete_buffer(YY_CURRENT_BUFFER);
+
+        printf("\nMensagem recebida:\n");
+        for(i = 0; i < msgLen; i++) printf("%c", requestMessage[i]);
+        fflush(stdout);
+        shutdown(newSocket, SHUT_RDWR);
+    }
+
+    shutdown(socket, SHUT_RDWR); 
     close(logfile);
     return 0;
 }

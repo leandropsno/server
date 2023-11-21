@@ -52,5 +52,5 @@ void TRACE(char *path, Response *resp);
 // Monta o PATH e chama o método HTTP adequado.
 void processRequisition(char *method, char *host, char *resource);
 
-// Conecta ao endereço e porta especificados, retorna o descritor do socket.
-int connect2Server(char *IPaddr, char *PortNumber);
+// Conecta à porta especificada, retorna o descritor do socket.
+int connectSocket(char *port);

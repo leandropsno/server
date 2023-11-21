@@ -218,16 +218,19 @@ void processRequisition(char *method, char *host, char *resource) {
     }
 }
 
-int connect2Server(char *IPaddr, char *PortNumber) {
+int connectSocket(char *port) {
+    struct sockaddr_in client, server;	
     int sock;
-    struct sockaddr_in destino;
+
     sock = socket(AF_INET, SOCK_STREAM, 0);
-    destino.sin_family = AF_INET;
-    destino.sin_port = htons(atoi(PortNumber));
-    inet_aton(IPaddr, (struct in_addr *)&destino.sin_addr.s_addr);
-    int result = connect(sock, (struct sockaddr*)&destino, sizeof(destino));
-    if (result < 0) {
-        // FIX ME
-    }
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons((unsigned short)atoi(port));
+    server.sin_addr.s_addr = INADDR_ANY;
+
+    bind(sock, (struct sockaddr *)&server, sizeof(server));
+    listen(sock, 5);
+
     return sock;
+
 }
