@@ -21,7 +21,7 @@
 #define OK 200
 #define INT_ERROR 500
 
-extern int logfile;
+extern int logfile, messageSocket;
 extern CommandNode *mainList;
 
 void httpError(Response *resp) {
@@ -67,7 +67,6 @@ int readContent(char *path, Response *resp) {
     ssize_t i;
     i = read(fd, resp->content, MAX_CONT);
     close(fd);
-    resp->code = OK;
     return i;
 }
 
@@ -85,11 +84,14 @@ void searchDir(char *path, Response *resp) {
         struct stat file_stats;
         if (stat(filename, &file_stats) == 0) {
             found = 1;
+            // Preenche Content-Type, Content-Length e Last-Modified
             strcpy(resp->type, "text/html");
-            if (access(filename, R_OK) == 0) {
-                // Encontrou um arquivo com permissão de leitura
-                readContent(filename, resp);
+            resp->size = (int)file_stats.st_size;
+            strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime)));
+            if (access(filename, R_OK) == 0) { // Encontrou um arquivo com permissão de leitura
+                readContent(filename, resp);    
                 read = 1;
+                resp->code = OK;
             }
         }
     }
@@ -110,18 +112,12 @@ void accessResource(char *path, Response *resp) {
         return;
     }
 
-    // Preenche Content-Length e Last-Modified
-    resp->size = (int)resource_stats.st_size;
-    strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
-
-    if ((access(path, R_OK) != 0)) {    // Se o recurso não possui permissão de leitura
-        resp->code = FORBIDDEN;
-        return;
-    }
-
     switch (resource_stats.st_mode & S_IFMT)
     {
         case S_IFREG :  // Se o recurso for um arquivo regular
+            // Preenche Content-Length, Last-Modified e Content-Type
+            resp->size = (int)resource_stats.st_size;
+            strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
             strcpy(resp->type, "text/html");
             readContent(path, resp);
             break;
@@ -137,6 +133,10 @@ void accessResource(char *path, Response *resp) {
 }
 
 void flushCommonHeader(Response *resp) {
+    dprintf(messageSocket, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
+    dprintf(messageSocket, "Date: %s", resp->rdate);
+    dprintf(messageSocket, "Server: %s\n", resp->server);    
+    dprintf(messageSocket, "Connection: %s\n", resp->connection);
     dprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
     dprintf(logfile, "Date: %s", resp->rdate);
     dprintf(logfile, "Server: %s\n", resp->server);    
@@ -144,18 +144,25 @@ void flushCommonHeader(Response *resp) {
 }
 
 void flushContentHeaders(Response *resp) {   
+    dprintf(messageSocket, "Last-Modified: %s", resp->lmdate);   
+    dprintf(messageSocket, "Content-Length: %d\n", resp->size);   
+    dprintf(messageSocket, "Content-Type: %s\n", resp->type);
     dprintf(logfile, "Last-Modified: %s", resp->lmdate);   
     dprintf(logfile, "Content-Length: %d\n", resp->size);   
     dprintf(logfile, "Content-Type: %s\n", resp->type);
 }
 
 void flushContent(Response *resp) {  
-    dprintf(logfile, "\n");  
+    dprintf(messageSocket, "\n");
+    dprintf(messageSocket, "%s", resp->content);
+    dprintf(logfile, "\n");
+    dprintf(logfile, "%s", resp->content);
 }
 
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
+    dprintf(logfile, "\nMensagem Envidada:\n");
     flushCommonHeader(resp);
     if (resp->code == 200) {
         flushContentHeaders(resp);

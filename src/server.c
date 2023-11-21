@@ -10,28 +10,26 @@
 #include <arpa/inet.h>
 #include "http.h"
 #include "lists.h"
+#include "http.tab.h"
 
 CommandNode* mainList = NULL;
 int logfile;
 char webSpacePath[50];
-
-void build_GET_requisition(char *req) {
-    strcpy(req, "GET / HTTP/1.1\r\nHost: example.org\r\n\r\n");
-}
+int connectionSocket, messageSocket;
 
 int main(int argc, char **argv) {
 
-    if (argc < 1) {
-        printf("Uso: ./servidor Port_Number\n");
+    if (argc < 3) {
+        printf("Uso: ./servidor <web_space_path> <port_number>\n");
         exit(1);
     }
     
     logfile = open("io/log.txt", O_CREAT | O_RDWR | O_APPEND, 00700); 
     strcpy(webSpacePath, argv[1]);
 
-    int socket = connectSocket(argv[1]);
+    connectionSocket = connectSocket(argv[2]);
     if (socket > 0) {
-        printf("%s aceitando conexões\n", argv[1]);
+        printf("%s aceitando conexões\n", argv[2]);
     }
     else {
         perror("Error in connection");
@@ -42,25 +40,22 @@ int main(int argc, char **argv) {
     int i, j;
     struct sockaddr_in cliente;
     unsigned int msgLen, nameLen;
-    int newSocket;
 
     while (1) {
         nameLen = sizeof(cliente);
-        newSocket = accept(socket, (struct sockaddr *)&cliente, &nameLen);
+        messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
 
-        msgLen = read(newSocket, requestMessage, sizeof(requestMessage));
+        msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
         
         yy_scan_string(requestMessage);
         yyparse();
-        yy_delete_buffer(YY_CURRENT_BUFFER);
 
-        printf("\nMensagem recebida:\n");
-        for(i = 0; i < msgLen; i++) printf("%c", requestMessage[i]);
-        fflush(stdout);
-        shutdown(newSocket, SHUT_RDWR);
+        dprintf(logfile, "\nMensagem recebida:\n");
+        for(i = 0; i < msgLen; i++) dprintf(logfile, "%c", requestMessage[i]);
+        shutdown(messageSocket, SHUT_RDWR);
     }
 
-    shutdown(socket, SHUT_RDWR); 
+    shutdown(connectionSocket, SHUT_RDWR); 
     close(logfile);
     return 0;
 }
