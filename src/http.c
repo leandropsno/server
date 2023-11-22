@@ -220,7 +220,7 @@ void TRACE(char *path, Response *resp) {
     flushContent(resp);
 }
 
-void processRequisition(char *method, char *host, char *resource) {
+void processRequest(char *method, char *host, char *resource) {
     Response resp = createResponse();
     
     if (checkPath(&resource[1]) < 0) {      // Se o recurso está fora do webspace
