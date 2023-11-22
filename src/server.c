@@ -7,14 +7,18 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include "http.h"
 #include "lists.h"
 #include "http.tab.h"
 
+#define MAX_CHLD 5
+
 CommandNode* mainList = NULL;
 char webSpacePath[50];
 int connectionSocket, messageSocket;
+int N = 0;
 
 int main(int argc, char **argv) {
 
@@ -34,11 +38,12 @@ int main(int argc, char **argv) {
     }
 
     char requestMessage[MAX_CONT], responseMessage[MAX_CONT];
-    int i, j, n;
+    int n, pid, state;
     struct sockaddr_in cliente;
     unsigned int msgLen, nameLen;
     
     fd_set connections;
+    FD_ZERO(&connections);
     struct timeval timeout;
     long int tolerancia = 10;
     timeout.tv_sec = tolerancia;
@@ -47,27 +52,46 @@ int main(int argc, char **argv) {
     do {
         nameLen = sizeof(cliente);
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
-
-        FD_ZERO(&connections);
-        FD_SET(messageSocket, &connections);
-        n = select(messageSocket + 1, &connections, (fd_set *)0, (fd_set *)0, &timeout);
         
-        if (n > 0 && FD_ISSET(messageSocket, &connections)) {
-            msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
-        }
-        else if (n == 0)  {
-            printf("Nenhuma requisição recebida em %ld segundos\n", tolerancia);
-            exit(0);
+        if (N < MAX_CHLD) {
+            pid = fork();
         }
         else {
-            perror("Error in select()");
-            exit(1);
+            wait(&state);
+            N--;
         }
 
-        yy_scan_string(requestMessage);
-        yyparse();
+        if (pid < 0){
+            perror("Error in fork()");
+            exit(1);
+        }
+        else if (pid > 0) {
+            N++;
+            shutdown(messageSocket, SHUT_RDWR);
+            continue;
+        }
+        else if (pid == 0) {
+            FD_SET(messageSocket, &connections);
+            n = select(messageSocket + 1, &connections, (fd_set *)0, (fd_set *)0, &timeout);
+            
+            if (n > 0 && FD_ISSET(messageSocket, &connections)) {
+                msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
+            }
+            else if (n == 0)  {
+                printf("Nenhuma requisição recebida em %ld segundos\n", tolerancia);
+                exit(0);
+            }
+            else {
+                perror("Error in select()");
+                exit(1);
+            }
 
-        shutdown(messageSocket, SHUT_RDWR);
+            yy_scan_string(requestMessage);
+            yyparse();
+
+            shutdown(messageSocket, SHUT_RDWR);
+            exit(0);
+        }
     } while (msgLen == 0);
 
     shutdown(connectionSocket, SHUT_RDWR); 
