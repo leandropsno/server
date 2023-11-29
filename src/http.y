@@ -8,6 +8,7 @@
 
 extern CommandNode* mainList;
 extern char webSpacePath[50];
+extern int logfile;
 
 %}
 
@@ -43,6 +44,7 @@ param_line : param_line COMMA ARG { addParam(&mainList, $3); }
 
 void sendRequest(char *request) {
     int i = processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
+    write(logfile, "----------------------------------------\n\n", 43);
     cleanupList(mainList);
     mainList = NULL;
     printf("%d processou o request com resultado %d\n", getpid(), i); fflush(stdout);

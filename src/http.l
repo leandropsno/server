@@ -14,7 +14,10 @@ NEWLINE     (\r\n)
 
 %%
 
-{COMMAND}		{ write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return COMMAND;  }
+{COMMAND}		{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 41);
+                  write(logfile, yytext, yyleng);
+                  strcpy(yylval.word, yytext);
+                  return COMMAND;  }
 {ARG}           { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return ARG; }
 {COLON}         { write(logfile, yytext, yyleng); return COLON; }
 {COMMA}         { write(logfile, yytext, yyleng); return COMMA; }

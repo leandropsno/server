@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     // Seta o número máximo de processos-filho
     MAX_CHLD = atoi(argv[3]);
 
-    logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR);
+    logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
 
     // Seta o caminho do webspace
     strcpy(webSpacePath, argv[1]);
