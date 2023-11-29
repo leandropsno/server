@@ -21,7 +21,7 @@
 #define OK 200
 #define INT_ERROR 500
 
-extern int messageSocket;
+extern int messageSocket, logfile;
 extern CommandNode *mainList;
 
 void httpError(Response *resp) {
@@ -161,16 +161,25 @@ void accessResource(char *path, Response *resp) {
 }
 
 void flushCommonHeader(Response *resp) {
-    dprintf(messageSocket, "HTTP/1.1 %d %s\n", resp->code, resp->result);    
+    dprintf(messageSocket, "HTTP/1.1 %d %s\n", resp->code, resp->result);  
     dprintf(messageSocket, "Date: %s", resp->rdate);
     dprintf(messageSocket, "Server: %s\n", resp->server);    
     dprintf(messageSocket, "Connection: %s\n", resp->connection);
+
+    dprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);  
+    dprintf(logfile, "Date: %s", resp->rdate);
+    dprintf(logfile, "Server: %s\n", resp->server);    
+    dprintf(logfile, "Connection: %s\n", resp->connection);
 }
 
 void flushContentHeaders(Response *resp) {   
     dprintf(messageSocket, "Last-Modified: %s", resp->lmdate);   
     dprintf(messageSocket, "Content-Length: %d\n", resp->size);   
     dprintf(messageSocket, "Content-Type: %s\n", resp->type);
+
+    dprintf(logfile, "Last-Modified: %s", resp->lmdate);   
+    dprintf(logfile, "Content-Length: %d\n", resp->size);   
+    dprintf(logfile, "Content-Type: %s\n", resp->type);
 }
 
 void flushContent(Response *resp) {  
@@ -207,8 +216,10 @@ void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
     dprintf(messageSocket, "Allow: %s\n", resp->allow);
+    dprintf(logfile, "Allow: %s\n", resp->allow);
     flushCommonHeader(resp);
     dprintf(messageSocket, "\n");
+    dprintf(logfile, "\n");
 }
 
 void TRACE(char *path, Response *resp) {
@@ -217,6 +228,7 @@ void TRACE(char *path, Response *resp) {
     printOriginal(resp->content, mainList);
     strcpy(resp->type, "message/html");
     dprintf(messageSocket, "Content-Type: %s\n", resp->type);
+    dprintf(logfile, "Content-Type: %s\n", resp->type);
     flushContent(resp);
 }
 
@@ -258,7 +270,9 @@ int connectSocket(char *port) {
     server.sin_port = htons((unsigned short)atoi(port));
     server.sin_addr.s_addr = INADDR_ANY;
 
-    bind(sock, (struct sockaddr *)&server, sizeof(server));
+    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        perror("Error in bind()");
+    }
     listen(sock, 5);
 
     if (sock > 0) {

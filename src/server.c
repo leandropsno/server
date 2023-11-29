@@ -17,19 +17,22 @@
 
 CommandNode* mainList = NULL;
 char webSpacePath[50];
-int connectionSocket, messageSocket;
+int connectionSocket, messageSocket, logfile;
 int N = 0;
 int MAX_CHLD;
 
 int main(int argc, char **argv) {
 
     // Verifica número de argumentos
-    if (argc < 4) {
-        printf("Uso: ./servidor <web_space_path> <port_number> <max_child>\n");
+    if (argc < 5) {
+        printf("Uso: ./servidor <web_space_path> <port_number> <max_child> <logfile>\n");
         exit(1);
     }
 
+    // Seta o número máximo de processos-filho
     MAX_CHLD = atoi(argv[3]);
+
+    logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR);
 
     // Seta o caminho do webspace
     strcpy(webSpacePath, argv[1]);
