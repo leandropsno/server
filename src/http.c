@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include "http.h"
 #include "lists.h"
@@ -220,12 +220,11 @@ void TRACE(char *path, Response *resp) {
     flushContent(resp);
 }
 
-void processRequest(char *method, char *host, char *resource) {
+int processRequest(char *method, char *host, char *resource) {
     Response resp = createResponse();
     
     if (checkPath(&resource[1]) < 0) {      // Se o recurso está fora do webspace
-        resp.code = FORBIDDEN;
-        return;
+        return FORBIDDEN;
     }
 
     // Monta o path para o recurso
@@ -245,6 +244,8 @@ void processRequest(char *method, char *host, char *resource) {
     else if (strcmp(method, "OPTIONS") == 0) {
         OPTIONS(path, &resp);
     }
+
+    return resp.code;
 }
 
 int connectSocket(char *port) {
@@ -260,6 +261,12 @@ int connectSocket(char *port) {
     bind(sock, (struct sockaddr *)&server, sizeof(server));
     listen(sock, 5);
 
-    return sock;
-
+    if (sock > 0) {
+        printf("%s aceitando conexões\n", port);
+        return sock;
+    }
+    else {
+        perror("Error in connection");
+        exit(1);
+    }
 }

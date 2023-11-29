@@ -19,7 +19,7 @@ NEWLINE     (\r\n)
 {COMMA}         { return COMMA; }
 {HOST_PORT}     { strcpy(yylval.word, yytext);  return HOST_PORT; }
 {NEWLINE}       { return NEWLINE; }
-.               ;
+.               { printf("Sequência não reconhecida: \"%s\"\n", yytext); }
 
 %%
 

@@ -1311,9 +1311,10 @@ yyreturnlab:
 
 
 void sendRequest(char *request) {
-    processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
+    int i = processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
     cleanupList(mainList);
     mainList = NULL;
+    printf("%d processou o request com resultado %d\n", getpid(), i); fflush(stdout);
 }
 
 void splitCommand(char *text) {
