@@ -11,6 +11,7 @@
 #include <sys/resource.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <poll.h>
 #include "http.h"
 #include "lists.h"
 #include "http.tab.h"
@@ -40,22 +41,20 @@ int main(int argc, char **argv) {
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[2]);
 
+    // Define a rotina de tratamento do sinal SIGCHLD
+    void handler();
+    signal(SIGCHLD, handler);
+
     char requestMessage[MAX_CONT];
     int n, pid, child = 0, state;
     struct sockaddr_in cliente;
     unsigned int msgLen, nameLen = sizeof(cliente);
    
-    fd_set connections;
-    FD_ZERO(&connections);
-    struct timeval timeout;
-    long int tolerancia = 1;
-    timeout.tv_sec = tolerancia;
-    timeout.tv_usec = 0;
+    struct pollfd connection;
+    connection.fd = 0;
+    connection.events = POLLIN;
+    long int timeout = 2000;
     
-    // Define a rotina de tratamento do sinal SIGCHLD
-    void ger_sinal();
-    signal(SIGCHLD, ger_sinal);
-
     printf("PAI: %d\n", getpid()); fflush(stdout);
 
     while (1) {
@@ -69,31 +68,29 @@ int main(int argc, char **argv) {
                 exit(1);
             }
             else if (pid == 0) {
-                sleep(7);
                 printf("FILHO: %d\n", getpid()); fflush(stdout);
-
-                FD_SET(messageSocket, &connections);
-                n = select(messageSocket + 1, &connections, (fd_set *)0, (fd_set *)0, &timeout);
+                
+                connection.fd = messageSocket;
+                n = poll(&connection, 1, timeout);
                 printf("Filho %d reconheceu %d sockets prontos pra leitura \n", getpid(), n); fflush(stdout);
-                if (n > 0 && FD_ISSET(messageSocket, &connections)) {
+                if (n > 0 && connection.revents == POLLIN) {
                     msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
-                    printf("Filho %d leu %d bytes da segunte requisicao:\n\n\"%s\"\n\n\n", getpid(), msgLen, requestMessage); fflush(stdout);              
+                    printf("Filho %d leu %d bytes de requisicao\n", getpid(), msgLen); fflush(stdout);              
                     yy_scan_string(requestMessage);
                     yyparse();
+                    close(connection.fd);
                     exit(0);      
                 }
                 else if (n == 0)  {
-                    printf("Filho %d não recebeu nenhuma requisição em %ld segundos\n", getpid(), tolerancia); fflush(stdout);
-                    exit(0);
+                    printf("Filho %d não recebeu nenhuma requisição em %ld segundos\n", getpid(), timeout); fflush(stdout);
                 }
                 else {
-                    perror("Error in select()");
+                    perror("Error in poll()");
                     exit(1);
                 }
             }
             else {
-                // sleep(2);
-                // shutdown(messageSocket, SHUT_RDWR);
+                // do something
             }
         }
         else {
@@ -105,7 +102,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void ger_sinal() {
+void handler() {
     int pid;
     int estado;
 
@@ -114,3 +111,4 @@ void ger_sinal() {
     printf("Filho %d encerrou\n", pid); fflush(stdout); 
     printf("Pai ainda tem %d filhos disponiveis\n", MAX_CHLD - N); fflush(stdout);         
 }
+

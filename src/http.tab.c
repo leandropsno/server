@@ -1313,7 +1313,7 @@ yyreturnlab:
 
 void sendRequest(char *request) {
     int i = processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
-    write(logfile, "\n----------------------------------------\n\n", 43);
+    write(logfile, "----------------------------------------\n\n", 43);
     cleanupList(mainList);
     mainList = NULL;
     printf("%d processou o request com resultado %d\n", getpid(), i); fflush(stdout);

@@ -272,6 +272,7 @@ int connectSocket(char *port) {
 
     if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("Error in bind()");
+        exit(1);
     }
     listen(sock, 5);
 

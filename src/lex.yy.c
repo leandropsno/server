@@ -761,7 +761,7 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 17 "http.l"
-{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 41);
+{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 43);
                   write(logfile, yytext, yyleng);
                   strcpy(yylval.word, yytext);
                   return COMMAND;  }
@@ -795,14 +795,16 @@ YY_RULE_SETUP
 case 7:
 YY_RULE_SETUP
 #line 26 "http.l"
-{ printf("Sequência não reconhecida: \"%s\"\n", yytext); }
+{ printf("Sequência não reconhecida: ");
+                    for (int i = 0; i < yyleng; i++) {
+                    printf("%d", (int)yytext[i]); } }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 28 "http.l"
+#line 30 "http.l"
 ECHO;
 	YY_BREAK
-#line 806 "lex.yy.c"
+#line 808 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1807,7 +1809,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 28 "http.l"
+#line 30 "http.l"
 
 
 

@@ -14,7 +14,7 @@ NEWLINE     (\r\n)
 
 %%
 
-{COMMAND}		{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 41);
+{COMMAND}		{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 43);
                   write(logfile, yytext, yyleng);
                   strcpy(yylval.word, yytext);
                   return COMMAND;  }
@@ -23,7 +23,9 @@ NEWLINE     (\r\n)
 {COMMA}         { write(logfile, yytext, yyleng); return COMMA; }
 {HOST_PORT}     { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext);  return HOST_PORT; }
 {NEWLINE}       { write(logfile, yytext, yyleng); return NEWLINE; }
-.               { printf("Sequência não reconhecida: \"%s\"\n", yytext); }
+.               { printf("Sequência não reconhecida: ");
+                    for (int i = 0; i < yyleng; i++) {
+                    printf("%d", (int)yytext[i]); } }
 
 %%
 
