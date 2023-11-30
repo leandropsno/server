@@ -26,9 +26,10 @@ int MAX_CHLD;
 
 void childHandler() {
     int pid, estado;
-    pid = wait3(&estado, WNOHANG, NULL);
+    pid = wait(&estado);
+    // pid = wait3(&estado, WNOHANG, NULL);
     N--;
-    printf("Filho %d encerrado: ainda restam %d\n", getpid(), MAX_CHLD - N); fflush(stdout);        
+    printf("Filho %d encerrado: ainda restam %d\n", pid, MAX_CHLD - N); fflush(stdout);        
 }
 
 void errorHandler(const char *func, char *message) {
@@ -39,6 +40,7 @@ void errorHandler(const char *func, char *message) {
     httpError(&resp, message);
 }
 
+// Abre um socket na porta especificada.
 int connectSocket(char *port) {
     struct sockaddr_in client, server;	
     int sock;
@@ -71,6 +73,10 @@ int main(int argc, char **argv) {
 
     // Seta o número máximo de processos-filho
     MAX_CHLD = atoi(argv[3]);
+    if (MAX_CHLD <= 0) {
+        printf("max_child deve ser maior que 0");
+        exit(1);
+    }
 
     // Abre o arquivo de log (registro)
     logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
@@ -81,12 +87,13 @@ int main(int argc, char **argv) {
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[2]);
 
-    // Define a rotina de tratamento do sinal SIGCHLD
+    // Define as rotinas de tratamento de sinais
     void childHandler();
     signal(SIGCHLD, childHandler);
 
     while (1) {
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
+        printf("Recebi uma conexão\n");
         if (N < MAX_CHLD) {
             N++;
             pid = fork(); 
@@ -99,15 +106,17 @@ int main(int argc, char **argv) {
                     printf("Filho %d leu %d bytes de requisicao\n", getpid(), msgLen); fflush(stdout);              
                     yy_scan_string(requestMessage);
                     yyparse();
-                    close(connection.fd);
+                    shutdown(connection.fd, SHUT_RD);
                     exit(0);      
                 }
                 else if (n == 0)  {
                     printf("Filho %d não recebeu nenhuma requisição em %ld segundos\n", getpid(), timeout); fflush(stdout);
+                    shutdown(connection.fd, SHUT_RD);
+                    exit(0);
                 }
                 else errorHandler("Error in poll()", NULL);
             }
-            else if (pid > 0) {} // do something
+            else if (pid > 0) {}
             else errorHandler("Error in fork()", NULL);
         }
         else errorHandler(NULL, "Servidor sobrecarregado. Tente novamente mais tarde.");

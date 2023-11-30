@@ -797,7 +797,7 @@ YY_RULE_SETUP
 #line 26 "http.l"
 { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
-                    printf("%d", (int)yytext[i]); } 
+                    printf("0x%x ", (int)yytext[i]); } 
                     printf("\n"); }
 	YY_BREAK
 case 8:

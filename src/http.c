@@ -29,6 +29,7 @@ void httpError(Response *resp, char *message) {
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     flushCommonHeader(resp);
     flushContent(resp);
+    write(logfile, "----------------------------------------\n\n", 43);
     exit(1);
 }
 
@@ -198,6 +199,7 @@ void GET(char *path, Response *resp) {
         flushCommonHeader(resp);
         flushContentHeaders(resp);
         flushContent(resp);
+        write(logfile, "----------------------------------------\n\n", 43);
     }
     else {
         httpError(resp, NULL);
@@ -210,6 +212,7 @@ void HEAD(char *path, Response *resp) {
     if (resp->code == 200) {
         flushCommonHeader(resp);
         flushContentHeaders(resp);
+        write(logfile, "----------------------------------------\n\n", 43);
     }
     else {
         httpError(resp, NULL);
@@ -223,6 +226,7 @@ void OPTIONS(char *path, Response *resp) {
         dprintf(messageSocket, "Allow: %s\n", resp->allow);
         dprintf(logfile, "Allow: %s\n", resp->allow);
         flushCommonHeader(resp);
+        write(logfile, "----------------------------------------\n\n", 43);
     }
     else {
         httpError(resp, NULL);
@@ -236,6 +240,7 @@ void TRACE(char *path, Response *resp) {
     strcpy(resp->type, "message/html");
     dprintf(messageSocket, "Content-Type: %s\n", resp->type);
     dprintf(logfile, "Content-Type: %s\n", resp->type);
+    write(logfile, "----------------------------------------\n\n", 43);
     flushContent(resp);
 }
 
