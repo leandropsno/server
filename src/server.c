@@ -26,10 +26,12 @@ int MAX_CHLD;
 
 void childHandler() {
     int pid, estado;
-    pid = wait(&estado);
-    // pid = wait3(&estado, WNOHANG, NULL);
-    N--;
-    printf("Filho %d encerrado: ainda restam %d\n", pid, MAX_CHLD - N); fflush(stdout);        
+    pid = wait3(&estado, WNOHANG, NULL);
+    do {
+        N--;
+        printf("Filho %d encerrado: ainda restam %d\n", pid, MAX_CHLD - N); fflush(stdout);  
+        pid = wait3(&estado, WNOHANG, NULL);
+    } while (pid > 0);       
 }
 
 void errorHandler(const char *func, char *message) {
@@ -90,9 +92,11 @@ int main(int argc, char **argv) {
     // Define as rotinas de tratamento de sinais
     void childHandler();
     signal(SIGCHLD, childHandler);
+    sleep(60);
 
     while (1) {
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
+        if (messageSocket < 0 && errno == EINTR) continue;
         printf("Recebi uma conexão\n");
         if (N < MAX_CHLD) {
             N++;
