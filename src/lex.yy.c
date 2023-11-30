@@ -797,14 +797,15 @@ YY_RULE_SETUP
 #line 26 "http.l"
 { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
-                    printf("%d", (int)yytext[i]); } }
+                    printf("%d", (int)yytext[i]); } 
+                    printf("\n"); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 30 "http.l"
+#line 31 "http.l"
 ECHO;
 	YY_BREAK
-#line 808 "lex.yy.c"
+#line 809 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1809,7 +1810,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 30 "http.l"
+#line 31 "http.l"
 
 
 

@@ -19,13 +19,17 @@
 #define NOT_FOUND 404
 #define FORBIDDEN 403
 #define OK 200
-#define INT_ERROR 500
+#define INTERNAL_ERROR 500
 
 extern int messageSocket, logfile;
 extern CommandNode *mainList;
 
-void httpError(Response *resp) {
-    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result);
+void httpError(Response *resp, char *message) {
+    if (message == NULL) message = "";
+    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
+    flushCommonHeader(resp);
+    flushContent(resp);
+    exit(1);
 }
 
 Response createResponse() {
@@ -35,7 +39,7 @@ Response createResponse() {
 
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
     strcpy(resp.server, "Servidor HTTP versão 8 de Leandro Ponsano");
-    strcpy(resp.connection, "keep-alive");
+    strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
 
     return resp;
@@ -52,7 +56,7 @@ void codeMsg(Response *resp) {
         case FORBIDDEN:
             strcpy(resp->result, "Forbidden");
             break;
-        case INT_ERROR:
+        case INTERNAL_ERROR:
             strcpy(resp->result, "Internal Server Error");
             break;
     }
@@ -61,7 +65,7 @@ void codeMsg(Response *resp) {
 int readContent(char *path, Response *resp) {
     int fd;
     if ((fd = open(path, O_RDONLY)) == -1) {
-        resp->code = INT_ERROR;
+        resp->code = INTERNAL_ERROR;
         return -1; 
     }
     ssize_t i;
@@ -190,36 +194,39 @@ void flushContent(Response *resp) {
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    flushCommonHeader(resp);
     if (resp->code == 200) {
+        flushCommonHeader(resp);
         flushContentHeaders(resp);
+        flushContent(resp);
     }
     else {
-        httpError(resp);
+        httpError(resp, NULL);
     }
-    flushContent(resp);
 }
 
 void HEAD(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    flushCommonHeader(resp);
     if (resp->code == 200) {
+        flushCommonHeader(resp);
         flushContentHeaders(resp);
     }
     else {
-        httpError(resp);
+        httpError(resp, NULL);
     }
 }
 
 void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
-    dprintf(messageSocket, "Allow: %s\n", resp->allow);
-    dprintf(logfile, "Allow: %s\n", resp->allow);
-    flushCommonHeader(resp);
-    dprintf(messageSocket, "\n");
-    dprintf(logfile, "\n");
+    if (resp->code == 200) {
+        dprintf(messageSocket, "Allow: %s\n", resp->allow);
+        dprintf(logfile, "Allow: %s\n", resp->allow);
+        flushCommonHeader(resp);
+    }
+    else {
+        httpError(resp, NULL);
+    }
 }
 
 void TRACE(char *path, Response *resp) {
@@ -258,30 +265,4 @@ int processRequest(char *method, char *host, char *resource) {
     }
 
     return resp.code;
-}
-
-int connectSocket(char *port) {
-    struct sockaddr_in client, server;	
-    int sock;
-
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-
-    server.sin_family = AF_INET;
-    server.sin_port = htons((unsigned short)atoi(port));
-    server.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        perror("Error in bind()");
-        exit(1);
-    }
-    listen(sock, 5);
-
-    if (sock > 0) {
-        printf("%s aceitando conexões\n", port);
-        return sock;
-    }
-    else {
-        perror("Error in connection");
-        exit(1);
-    }
 }

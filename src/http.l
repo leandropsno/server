@@ -25,7 +25,8 @@ NEWLINE     (\r\n)
 {NEWLINE}       { write(logfile, yytext, yyleng); return NEWLINE; }
 .               { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
-                    printf("%d", (int)yytext[i]); } }
+                    printf("%d", (int)yytext[i]); } 
+                    printf("\n"); }
 
 %%
 

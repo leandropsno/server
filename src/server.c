@@ -16,13 +16,52 @@
 #include "lists.h"
 #include "http.tab.h"
 
+#define INTERNAL_ERROR 500
+
 CommandNode* mainList = NULL;
 char webSpacePath[50];
 int connectionSocket, messageSocket, logfile;
 int N = 0;
 int MAX_CHLD;
 
+void childHandler() {
+    int pid, estado;
+    pid = wait3(&estado, WNOHANG, NULL);
+    N--;
+    printf("Filho %d encerrado: ainda restam %d\n", getpid(), MAX_CHLD - N); fflush(stdout);        
+}
+
+void errorHandler(const char *func, char *message) {
+    if (func != NULL) perror(func);
+    Response resp = createResponse();
+    resp.code = INTERNAL_ERROR;
+    codeMsg(&resp);
+    httpError(&resp, message);
+}
+
+int connectSocket(char *port) {
+    struct sockaddr_in client, server;	
+    int sock;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons((unsigned short)atoi(port));
+    server.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) errorHandler("Error in bind()", NULL);
+    listen(sock, 5);
+    printf("%s aceitando conexões\n", port);
+    return sock;
+}
+
 int main(int argc, char **argv) {
+    char requestMessage[MAX_CONT];
+    int n, pid, child = 0;
+    struct sockaddr_in cliente;
+    unsigned int msgLen, nameLen = sizeof(cliente);
+    struct pollfd connection; connection.events = POLLIN;
+    long int timeout = 2000;
 
     // Verifica número de argumentos
     if (argc < 5) {
@@ -33,6 +72,7 @@ int main(int argc, char **argv) {
     // Seta o número máximo de processos-filho
     MAX_CHLD = atoi(argv[3]);
 
+    // Abre o arquivo de log (registro)
     logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
 
     // Seta o caminho do webspace
@@ -42,37 +82,18 @@ int main(int argc, char **argv) {
     connectionSocket = connectSocket(argv[2]);
 
     // Define a rotina de tratamento do sinal SIGCHLD
-    void handler();
-    signal(SIGCHLD, handler);
-
-    char requestMessage[MAX_CONT];
-    int n, pid, child = 0, state;
-    struct sockaddr_in cliente;
-    unsigned int msgLen, nameLen = sizeof(cliente);
-   
-    struct pollfd connection;
-    connection.fd = 0;
-    connection.events = POLLIN;
-    long int timeout = 2000;
-    
-    printf("PAI: %d\n", getpid()); fflush(stdout);
+    void childHandler();
+    signal(SIGCHLD, childHandler);
 
     while (1) {
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
         if (N < MAX_CHLD) {
-            printf("Pai ainda tem %d filhos disponiveis\n", MAX_CHLD - N); fflush(stdout);
             N++;
             pid = fork(); 
-            if (pid < 0) {
-                perror("Error in fork()");
-                exit(1);
-            }
-            else if (pid == 0) {
-                printf("FILHO: %d\n", getpid()); fflush(stdout);
-                
+            if (pid == 0) {
+                printf("Filho %d criado: ainda restam %d\n", getpid(), MAX_CHLD - N); fflush(stdout);
                 connection.fd = messageSocket;
                 n = poll(&connection, 1, timeout);
-                printf("Filho %d reconheceu %d sockets prontos pra leitura \n", getpid(), n); fflush(stdout);
                 if (n > 0 && connection.revents == POLLIN) {
                     msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
                     printf("Filho %d leu %d bytes de requisicao\n", getpid(), msgLen); fflush(stdout);              
@@ -84,31 +105,13 @@ int main(int argc, char **argv) {
                 else if (n == 0)  {
                     printf("Filho %d não recebeu nenhuma requisição em %ld segundos\n", getpid(), timeout); fflush(stdout);
                 }
-                else {
-                    perror("Error in poll()");
-                    exit(1);
-                }
+                else errorHandler("Error in poll()", NULL);
             }
-            else {
-                // do something
-            }
+            else if (pid > 0) {} // do something
+            else errorHandler("Error in fork()", NULL);
         }
-        else {
-            printf("Servidor sobrecarregado\n"); fflush(stdout);
-        }
+        else errorHandler(NULL, "Servidor sobrecarregado. Tente novamente mais tarde.");
     }
     shutdown(connectionSocket, SHUT_RDWR);
-    printf("Pai %d encerrou\n", getpid());
     return 0;
 }
-
-void handler() {
-    int pid;
-    int estado;
-
-    pid = wait3(&estado, WNOHANG, NULL);
-    N--;
-    printf("Filho %d encerrou\n", pid); fflush(stdout); 
-    printf("Pai ainda tem %d filhos disponiveis\n", MAX_CHLD - N); fflush(stdout);         
-}
-
