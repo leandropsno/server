@@ -12,6 +12,8 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <poll.h>
+#include <pthread.h>
+#include <stdint.h>
 #include "http.h"
 #include "lists.h"
 #include "http.tab.h"
@@ -22,24 +24,38 @@ CommandNode* mainList = NULL;
 char webSpacePath[50];
 int connectionSocket, messageSocket, logfile;
 int N = 0;
-int MAX_CHLD;
+int MAX_THREADS;
+struct pollfd connection;
+long int timeout = 2000;
 
-void childHandler() {
-    int pid, estado;
-    pid = wait3(&estado, WNOHANG, NULL);
-    do {
-        N--;
-        printf("Filho %d encerrado: ainda restam %d\n", pid, MAX_CHLD - N); fflush(stdout);  
-        pid = wait3(&estado, WNOHANG, NULL);
-    } while (pid > 0);       
-}
-
-void errorHandler(const char *func, char *message) {
+void errorHandler(const char *func, const char *message) {
     if (func != NULL) perror(func);
     Response resp = createResponse();
     resp.code = INTERNAL_ERROR;
     codeMsg(&resp);
     httpError(&resp, message);
+}
+
+void threadMain(void *socket) {
+    printf("Thread %d criada, restam %d\n", pthread_self(), MAX_THREADS - N); fflush(stdout);
+    connection.events = POLLIN;
+    connection.fd = (intptr_t)socket;
+    int n = poll(&connection, 1, timeout);
+    if (n > 0 && connection.revents == POLLIN) {
+        char requestMessage[MAX_CONT];
+        int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
+        printf("Thread %d leu %d bytes de requisicao\n", pthread_self(), msgLen); fflush(stdout);              
+        yy_scan_string(requestMessage);
+        yyparse();    
+    }
+    else if (n == 0)  {
+        printf("Thread %d não recebeu nenhuma requisição em %ld segundos\n", pthread_self(), timeout); fflush(stdout);
+    }
+    else errorHandler("Error in poll()", NULL);
+    shutdown(connection.fd, SHUT_RD);
+    N--;
+    printf("Thread %d terminada, restam %d\n", pthread_self(), MAX_THREADS - N); fflush(stdout);
+    pthread_exit(0);
 }
 
 // Abre um socket na porta especificada.
@@ -60,68 +76,41 @@ int connectSocket(char *port) {
 }
 
 int main(int argc, char **argv) {
-    char requestMessage[MAX_CONT];
-    int n, pid, child = 0;
     struct sockaddr_in cliente;
-    unsigned int msgLen, nameLen = sizeof(cliente);
-    struct pollfd connection; connection.events = POLLIN;
-    long int timeout = 2000;
+    unsigned int nameLen = sizeof(cliente);
 
     // Verifica número de argumentos
-    if (argc < 5) {
-        printf("Uso: ./servidor <web_space_path> <port_number> <max_child> <logfile>\n");
+    if ((argc < 5) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
+        printf("Uso: ./servidor <web_space_path> <logfile> <max_thread> <port_number>\n");
         exit(1);
     }
-
-    // Seta o número máximo de processos-filho
-    MAX_CHLD = atoi(argv[3]);
-    if (MAX_CHLD <= 0) {
-        printf("max_child deve ser maior que 0");
-        exit(1);
-    }
-
-    // Abre o arquivo de log (registro)
-    logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
 
     // Seta o caminho do webspace
     strcpy(webSpacePath, argv[1]);
 
-    // Realiza a conexão na porta especificada
-    connectionSocket = connectSocket(argv[2]);
+    // Abre o arquivo de log (registro)
+    logfile = open(argv[2], O_CREAT | O_APPEND | O_RDWR, 00700);
 
-    // Define as rotinas de tratamento de sinais
-    void childHandler();
-    signal(SIGCHLD, childHandler);
-    sleep(60);
+    // Seta o número máximo de threads
+    MAX_THREADS = atoi(argv[3]);
+    if (MAX_THREADS <= 0) {
+        printf("max_thread deve ser maior que 0");
+        exit(1);
+    }
+
+    // Realiza a conexão na porta especificada
+    connectionSocket = connectSocket(argv[4]);
 
     while (1) {
+        // Aguarda conexão no socket
         messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
         if (messageSocket < 0 && errno == EINTR) continue;
-        printf("Recebi uma conexão\n");
-        if (N < MAX_CHLD) {
+
+        // Cria thread, se houver alguma disponível.
+        if (N < MAX_THREADS) {
             N++;
-            pid = fork(); 
-            if (pid == 0) {
-                printf("Filho %d criado: ainda restam %d\n", getpid(), MAX_CHLD - N); fflush(stdout);
-                connection.fd = messageSocket;
-                n = poll(&connection, 1, timeout);
-                if (n > 0 && connection.revents == POLLIN) {
-                    msgLen = read(messageSocket, requestMessage, sizeof(requestMessage));
-                    printf("Filho %d leu %d bytes de requisicao\n", getpid(), msgLen); fflush(stdout);              
-                    yy_scan_string(requestMessage);
-                    yyparse();
-                    shutdown(connection.fd, SHUT_RD);
-                    exit(0);      
-                }
-                else if (n == 0)  {
-                    printf("Filho %d não recebeu nenhuma requisição em %ld segundos\n", getpid(), timeout); fflush(stdout);
-                    shutdown(connection.fd, SHUT_RD);
-                    exit(0);
-                }
-                else errorHandler("Error in poll()", NULL);
-            }
-            else if (pid > 0) {}
-            else errorHandler("Error in fork()", NULL);
+            pthread_t thread;
+            if (pthread_create(thread, NULL, threadMain, (void *)messageSocket) != 0) errorHandler("Error in phtread_create()", NULL);
         }
         else errorHandler(NULL, "Servidor sobrecarregado. Tente novamente mais tarde.");
     }
