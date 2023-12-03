@@ -30,10 +30,10 @@ void printOriginal(char *buf, listptr list);
 void printCommandList(listptr list);
 
 // Libera o espaço alocado por uma lista de parametros.
-void freeParamList(ParamNode* ini);
+void freeParamList(ParamNode** ini);
 
 // Libera o espaço alocado por uma lista de comandos e seus parâmetros.
-void freeCommandList(CommandNode *ini);
+void freeCommandList(CommandNode** ini);
 
 // Limpa uma lista.
 void cleanupList(listptr list);

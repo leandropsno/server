@@ -1,22 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "lists.h"
+#include <stdint.h>
 
-void limpar(listptr mainList) {
-    CommandNode *list = *mainList;
-    free(list->next);
-    list->next = NULL;
-    free(list);
-    list = NULL;
-    free(mainList);
-    mainList = NULL;
+void *smth(void *pointer) {
+    int a = (intptr_t)pointer;
+    int b = 0;
+    b++;
 }
 
 int main() {
 
-    listptr mainList = (listptr)malloc(sizeof(CommandNode *));
-    addCommand(mainList, "Arrozcomfeijao");
-    addCommand(mainList, "batatdocefrango");
-    limpar(mainList);
+    int a = 10;
+    smth((void *)(intptr_t)a);
     return 0;
 }

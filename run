@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Generate a random integer between 1024 and 65535
+random_port=$((1024 + RANDOM % (65353 - 1024 + 1)))
+
+# Replace "your_executable" with the actual name of your executable
+executable="src/server"
+flags="~/webspace io/log.txt 2"
+
+# Run the executable with the random port
+echo "Running $executable with random port: $random_port"
+$executable $flags $random_port

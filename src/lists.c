@@ -92,30 +92,29 @@ void printCommandList(listptr list) {
     printf("---------------------------------------------------------\n\n");
 }
 
-void freeParamList(ParamNode* ini) {
-    ParamNode *current = ini;
+void freeParamList(ParamNode** ini) {
+    ParamNode *current = *ini;
     ParamNode *next;
     while (current != NULL) {
         next = current->next;
         free(current);
         current = next;
     }
+    *ini = NULL;
 }
 
-void freeCommandList(CommandNode* ini) {
-    CommandNode *current = ini;
+void freeCommandList(CommandNode **ini) {
+    CommandNode *current = *ini;
     CommandNode *next;
     while (current != NULL) {
         next = current->next;
-        freeParamList(current->paramList);
+        freeParamList(&current->paramList);
         free(current);
         current = next;
     }
-    ini = NULL;
+    *ini = NULL;
 }
 
 void cleanupList(listptr list) {
-    freeCommandList(*list);
-    free(list);
-    list = NULL;
+    freeCommandList(list);
 }

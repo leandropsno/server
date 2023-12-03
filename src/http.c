@@ -38,7 +38,7 @@ Response createResponse() {
     gettimeofday(&tv, NULL);
 
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
-    strcpy(resp.server, "Servidor HTTP versão 8 de Leandro Ponsano");
+    strcpy(resp.server, "Servidor HTTP versão 11 de Leandro Ponsano");
     strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
 
