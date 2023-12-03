@@ -28,9 +28,8 @@ CommandNode* createCommandNode(char* command) {
     return new;
 }
 
-void addParam(CommandNode** cmd, char* parameter) {
-    // printf("Adicionando parametro %s\n", parameter);
-    CommandNode* firstCommand = *cmd;
+void addParam(listptr list, char* parameter) {
+    CommandNode* firstCommand = *list;
     while (firstCommand->next != NULL) {
         firstCommand = firstCommand->next;
     }
@@ -47,14 +46,13 @@ void addParam(CommandNode** cmd, char* parameter) {
     }
 }
 
-void addCommand(CommandNode** ini, char* command) {
-    // printf("Adicionando comando %s\n", command);
+void addCommand(listptr list, char* command) {
     CommandNode* new = createCommandNode(command);
-    if (*ini == NULL) {
-        *ini = new;
+    if (*list == NULL) {
+        *list = new;
     }
     else {
-        CommandNode* current = *ini;
+        CommandNode* current = *list;
         while (current->next != NULL) {
             current = current->next;
         }
@@ -62,7 +60,8 @@ void addCommand(CommandNode** ini, char* command) {
     }
 }
 
-void printOriginal(char *buf, CommandNode* ini) {
+void printOriginal(char *buf, listptr list) {
+    CommandNode* ini = *list;
     int w = sprintf(buf, "%s %s %s\n", ini->command, ini->paramList->parameter, ini->paramList->next->parameter);
     CommandNode* currentCommand = ini->next;
     while (currentCommand != NULL) {
@@ -77,7 +76,8 @@ void printOriginal(char *buf, CommandNode* ini) {
     }
 }
 
-void printCommandList(CommandNode* ini) {
+void printCommandList(listptr list) {
+    CommandNode* ini = *list;
     printf("-------------- NOVO PAR REQUISICAO/RESPOSTA -------------\n");
     CommandNode* currentCommand = ini;
     while (currentCommand != NULL) {
@@ -93,26 +93,29 @@ void printCommandList(CommandNode* ini) {
 }
 
 void freeParamList(ParamNode* ini) {
-    if (ini != NULL) {
-        freeParamList(ini->next);
-        free(ini);
-        ini = NULL;
+    ParamNode *current = ini;
+    ParamNode *next;
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
     }
-    return;
 }
 
 void freeCommandList(CommandNode* ini) {
-    if (ini != NULL) {
-        freeCommandList(ini->next);
-        freeParamList(ini->paramList);
-        free(ini);
-        ini = NULL;
+    CommandNode *current = ini;
+    CommandNode *next;
+    while (current != NULL) {
+        next = current->next;
+        freeParamList(current->paramList);
+        free(current);
+        current = next;
     }
+    ini = NULL;
 }
 
-void cleanupList(CommandNode *list) {
-    if (list != NULL) {
-        // printCommandList(list);
-        freeCommandList(list);
-    }
+void cleanupList(listptr list) {
+    freeCommandList(*list);
+    free(list);
+    list = NULL;
 }

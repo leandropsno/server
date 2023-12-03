@@ -44,7 +44,7 @@ void *threadMain(void *socket) {
     connection.events = POLLIN;
     connection.fd = (intptr_t)socket;
     int n = poll(&connection, 1, timeout);
-    if ((n > 0) && (connection.revents == POLLIN)) {
+    if (n > 0 && connection.revents == POLLIN) {
         char requestMessage[MAX_CONT];
         int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
         if (msgLen > 0) {
@@ -116,12 +116,32 @@ int main(int argc, char **argv) {
 
         // Cria thread, se houver alguma disponível.
         if (n_threads > 0) {
-            n_threads--;
-            pthread_t thread;
-            if (pthread_create(&thread, NULL, threadMain, (void *)&messageSocket) != 0) errorHandler("Error in phtread_create()", NULL);
+            int result;
+            connection.events = POLLIN;
+            connection.fd = messageSocket;
+            int n = poll(&connection, 1, timeout);
+            if ((n > 0) && (connection.revents == POLLIN)) {
+                char requestMessage[MAX_CONT];
+                int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
+                if (msgLen > 0) {
+                    printf("leu %d bytes de requisicao\n", msgLen); fflush(stdout);              
+                    listptr mainList = (listptr)malloc(sizeof(CommandNode *));
+                    yy_scan_string(requestMessage);
+                    yyparse(mainList, &result);
+                    cleanupList(mainList);
+                    mainList = NULL;
+                    printf("processou o request com resultado %d\n", result); fflush(stdout);
+                }
+            }
+            else if (n == 0)  {
+                printf("não recebeu nenhuma requisição em %ld segundos\n", timeout); fflush(stdout);
+            }
+            else if (n < 0) errorHandler("Error in poll()", NULL);
+            close(messageSocket);
+            n_threads++;
         }
         else errorHandler(NULL, "Servidor sobrecarregado. Tente novamente mais tarde.");
     }
-    shutdown(connectionSocket, SHUT_RDWR);
+    close(connectionSocket);
     return 0;
 }

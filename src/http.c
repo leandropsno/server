@@ -10,8 +10,8 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include "http.h"
 #include "lists.h"
+#include "http.h"
 
 #define MAX_REQ 1024
 #define MAX_NAME 128
@@ -22,15 +22,14 @@
 #define INTERNAL_ERROR 500
 
 extern int messageSocket, logfile;
-extern CommandNode *mainList;
+extern char webSpacePath[50];
 
-void httpError(Response *resp, char *message) {
+void httpError(Response *resp, const char *message) {
     if (message == NULL) message = "";
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     flushCommonHeader(resp);
     flushContent(resp);
     write(logfile, "----------------------------------------\n\n", 43);
-    exit(1);
 }
 
 Response createResponse() {
@@ -236,7 +235,6 @@ void OPTIONS(char *path, Response *resp) {
 void TRACE(char *path, Response *resp) {
     resp->code = OK;
     codeMsg(resp);
-    printOriginal(resp->content, mainList);
     strcpy(resp->type, "message/html");
     dprintf(messageSocket, "Content-Type: %s\n", resp->type);
     dprintf(logfile, "Content-Type: %s\n", resp->type);
@@ -244,16 +242,20 @@ void TRACE(char *path, Response *resp) {
     flushContent(resp);
 }
 
-int processRequest(char *method, char *host, char *resource) {
+int processRequest(listptr mainList) {
     Response resp = createResponse();
     
+    CommandNode *list = *mainList;
+    char *method = list->command;
+    char *resource = list->paramList->parameter;
+
     if (checkPath(&resource[1]) < 0) {      // Se o recurso está fora do webspace
         return FORBIDDEN;
     }
 
     // Monta o path para o recurso
     char path[MAX_NAME] = "";
-    strcat(path, host);
+    strcat(path, webSpacePath);
     strcat(path, resource);
     
     if (strcmp(method, "GET") == 0) {
@@ -263,6 +265,7 @@ int processRequest(char *method, char *host, char *resource) {
         HEAD(path, &resp);
     }
     else if (strcmp(method, "TRACE") == 0) {
+        printOriginal(resp.content, mainList);
         TRACE(path, &resp);
     }
     else if (strcmp(method, "OPTIONS") == 0) {

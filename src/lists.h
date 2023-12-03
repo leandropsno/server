@@ -9,6 +9,8 @@ typedef struct CommandNode {
     struct CommandNode* next;
 } CommandNode;
 
+typedef struct CommandNode** listptr;
+
 // Cria um nó de parâmetro e o devolve.
 ParamNode* createParamNode(char* parameter);
 
@@ -16,22 +18,22 @@ ParamNode* createParamNode(char* parameter);
 CommandNode* createCommandNode(char* command);
 
 // Adiciona um nó de parâmetro no final da lista de parâmetros do último nó de comandos de uma listas de comando.
-void addParam(CommandNode** cmd, char* parameter);
+void addParam(listptr list, char* parameter);
 
 // Adiciona um nó de comando no final de uma lista de comandos.
-void addCommand(CommandNode** ini, char* command);
+void addCommand(listptr list, char* command);
 
 // Recria e armazena em buf a sequência de caracteres que originou a lista.
-void printOriginal(char *buf, CommandNode* ini);
+void printOriginal(char *buf, listptr list);
 
 // Imprime uma lista de comandos.
-void printCommandList(CommandNode* ini);
+void printCommandList(listptr list);
 
 // Libera o espaço alocado por uma lista de parametros.
 void freeParamList(ParamNode* ini);
 
 // Libera o espaço alocado por uma lista de comandos e seus parâmetros.
-void freeCommandList(CommandNode* ini);
+void freeCommandList(CommandNode *ini);
 
-// Limpa uma lista de comandos (imprime os valores e libera os ponteiros).
-void cleanupList(CommandNode *list);
+// Limpa uma lista.
+void cleanupList(listptr list);

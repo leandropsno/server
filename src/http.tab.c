@@ -73,15 +73,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "http.h"
+#include <pthread.h>
 #include "lists.h"
+#include "http.h"
 
-extern CommandNode* mainList;
-extern char webSpacePath[50];
 extern int logfile;
 
-
-#line 85 "http.tab.c"
+#line 83 "http.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -510,8 +508,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    24,    24,    25,    28,    29,    32,    34,    35,    38,
-      39,    40
+       0,    22,    22,    23,    26,    27,    30,    32,    33,    36,
+      37,    38
 };
 #endif
 
@@ -644,7 +642,7 @@ enum { YYENOMEM = -2 };
       }                                                           \
     else                                                          \
       {                                                           \
-        yyerror (YY_("syntax error: cannot back up")); \
+        yyerror (mainList, result, YY_("syntax error: cannot back up")); \
         YYERROR;                                                  \
       }                                                           \
   while (0)
@@ -677,7 +675,7 @@ do {                                                                      \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Kind, Value); \
+                  Kind, Value, mainList, result); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
@@ -689,10 +687,12 @@ do {                                                                      \
 
 static void
 yy_symbol_value_print (FILE *yyo,
-                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result)
 {
   FILE *yyoutput = yyo;
   YY_USE (yyoutput);
+  YY_USE (mainList);
+  YY_USE (result);
   if (!yyvaluep)
     return;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
@@ -707,12 +707,12 @@ yy_symbol_value_print (FILE *yyo,
 
 static void
 yy_symbol_print (FILE *yyo,
-                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep)
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result)
 {
   YYFPRINTF (yyo, "%s %s (",
              yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
-  yy_symbol_value_print (yyo, yykind, yyvaluep);
+  yy_symbol_value_print (yyo, yykind, yyvaluep, mainList, result);
   YYFPRINTF (yyo, ")");
 }
 
@@ -746,7 +746,7 @@ do {                                                            \
 
 static void
 yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
-                 int yyrule)
+                 int yyrule, listptr mainList, int *result)
 {
   int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
@@ -759,7 +759,7 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
                        YY_ACCESSING_SYMBOL (+yyssp[yyi + 1 - yynrhs]),
-                       &yyvsp[(yyi + 1) - (yynrhs)]);
+                       &yyvsp[(yyi + 1) - (yynrhs)], mainList, result);
       YYFPRINTF (stderr, "\n");
     }
 }
@@ -767,7 +767,7 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
 # define YY_REDUCE_PRINT(Rule)          \
 do {                                    \
   if (yydebug)                          \
-    yy_reduce_print (yyssp, yyvsp, Rule); \
+    yy_reduce_print (yyssp, yyvsp, Rule, mainList, result); \
 } while (0)
 
 /* Nonzero means print parse trace.  It is left uninitialized so that
@@ -808,9 +808,11 @@ int yydebug;
 
 static void
 yydestruct (const char *yymsg,
-            yysymbol_kind_t yykind, YYSTYPE *yyvaluep)
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, listptr mainList, int *result)
 {
   YY_USE (yyvaluep);
+  YY_USE (mainList);
+  YY_USE (result);
   if (!yymsg)
     yymsg = "Deleting";
   YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
@@ -837,7 +839,7 @@ int yynerrs;
 `----------*/
 
 int
-yyparse (void)
+yyparse (listptr mainList, int *result)
 {
     yy_state_fast_t yystate = 0;
     /* Number of tokens to shift before error messages enabled.  */
@@ -1079,43 +1081,43 @@ yyreduce:
   switch (yyn)
     {
   case 4: /* request: command_line NEWLINE  */
-#line 28 "http.y"
-                               { sendRequest((yyval.word)); }
-#line 1085 "http.tab.c"
+#line 26 "http.y"
+                               { sendRequest(result, mainList, (yyval.word)); }
+#line 1087 "http.tab.c"
     break;
 
   case 5: /* request: command_line param_lines NEWLINE  */
-#line 29 "http.y"
-                                           { sendRequest((yyval.word)); }
-#line 1091 "http.tab.c"
+#line 27 "http.y"
+                                           { sendRequest(result, mainList, (yyval.word)); }
+#line 1093 "http.tab.c"
     break;
 
   case 6: /* command_line: COMMAND NEWLINE  */
-#line 32 "http.y"
-                              { splitCommand((yyvsp[-1].word)); }
-#line 1097 "http.tab.c"
+#line 30 "http.y"
+                              { splitCommand(mainList, (yyvsp[-1].word)); }
+#line 1099 "http.tab.c"
     break;
 
   case 9: /* param_line: param_line COMMA ARG  */
-#line 38 "http.y"
-                                  { addParam(&mainList, (yyvsp[0].word)); }
-#line 1103 "http.tab.c"
+#line 36 "http.y"
+                                  { addParam(mainList, (yyvsp[0].word)); }
+#line 1105 "http.tab.c"
     break;
 
   case 10: /* param_line: ARG COLON ARG  */
-#line 39 "http.y"
-                           { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1109 "http.tab.c"
+#line 37 "http.y"
+                           { addCommand(mainList, (yyvsp[-2].word)); addParam(mainList, (yyvsp[0].word)); }
+#line 1111 "http.tab.c"
     break;
 
   case 11: /* param_line: ARG COLON HOST_PORT  */
-#line 40 "http.y"
-                                 { addCommand(&mainList, (yyvsp[-2].word)); addParam(&mainList, (yyvsp[0].word)); }
-#line 1115 "http.tab.c"
+#line 38 "http.y"
+                                 { addCommand(mainList, (yyvsp[-2].word)); addParam(mainList, (yyvsp[0].word)); }
+#line 1117 "http.tab.c"
     break;
 
 
-#line 1119 "http.tab.c"
+#line 1121 "http.tab.c"
 
       default: break;
     }
@@ -1162,7 +1164,7 @@ yyerrlab:
   if (!yyerrstatus)
     {
       ++yynerrs;
-      yyerror (YY_("syntax error"));
+      yyerror (mainList, result, YY_("syntax error"));
     }
 
   if (yyerrstatus == 3)
@@ -1179,7 +1181,7 @@ yyerrlab:
       else
         {
           yydestruct ("Error: discarding",
-                      yytoken, &yylval);
+                      yytoken, &yylval, mainList, result);
           yychar = YYEMPTY;
         }
     }
@@ -1235,7 +1237,7 @@ yyerrlab1:
 
 
       yydestruct ("Error: popping",
-                  YY_ACCESSING_SYMBOL (yystate), yyvsp);
+                  YY_ACCESSING_SYMBOL (yystate), yyvsp, mainList, result);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
@@ -1273,7 +1275,7 @@ yyabortlab:
 | yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
 `-----------------------------------------------------------*/
 yyexhaustedlab:
-  yyerror (YY_("memory exhausted"));
+  yyerror (mainList, result, YY_("memory exhausted"));
   yyresult = 2;
   goto yyreturnlab;
 
@@ -1288,7 +1290,7 @@ yyreturnlab:
          user semantic actions for why this is necessary.  */
       yytoken = YYTRANSLATE (yychar);
       yydestruct ("Cleanup: discarding lookahead",
-                  yytoken, &yylval);
+                  yytoken, &yylval, mainList, result);
     }
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYABORT or YYACCEPT.  */
@@ -1297,7 +1299,7 @@ yyreturnlab:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp);
+                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp, mainList, result);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -1308,22 +1310,19 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 43 "http.y"
+#line 41 "http.y"
 
 
-void sendRequest(char *request) {
-    int i = processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
+void sendRequest(int *result, listptr mainList, char *request) {
+    *result = processRequest(mainList);
     write(logfile, "----------------------------------------\n\n", 43);
-    cleanupList(mainList);
-    mainList = NULL;
-    printf("%d processou o request com resultado %d\n", getpid(), i); fflush(stdout);
 }
 
-void splitCommand(char *text) {
+void splitCommand(listptr mainList, char *text) {
     char *tok = strtok(text, " ");
-    addCommand(&mainList, tok);
+    addCommand(mainList, tok);
     tok = strtok(NULL, " ");
-    addParam(&mainList, tok);
+    addParam(mainList, tok);
     tok = strtok(NULL, " ");
-    addParam(&mainList, tok);
+    addParam(mainList, tok);
 }

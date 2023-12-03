@@ -68,7 +68,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 15 "http.y"
+#line 13 "http.y"
 
     char word[100];
 
@@ -84,7 +84,7 @@ typedef union YYSTYPE YYSTYPE;
 extern YYSTYPE yylval;
 
 
-int yyparse (void);
+int yyparse (listptr mainList, int *result);
 
 
 #endif /* !YY_YY_HTTP_TAB_H_INCLUDED  */

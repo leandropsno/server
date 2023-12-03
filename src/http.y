@@ -3,13 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "http.h"
+#include <pthread.h>
 #include "lists.h"
+#include "http.h"
 
-extern CommandNode* mainList;
-extern char webSpacePath[50];
 extern int logfile;
-
 %}
 
 %union {
@@ -18,43 +16,40 @@ extern int logfile;
 %token <word> COMMAND ARG HOST_PORT
 %token COLON NEWLINE COMMA
 %type <word> request
-
+%parse-param { listptr mainList } { int *result }
 %%
 
 requests : requests request
          | request
          ;
 
-request : command_line NEWLINE { sendRequest($$); }
-        | command_line param_lines NEWLINE { sendRequest($$); }
+request : command_line NEWLINE { sendRequest(result, mainList, $$); }
+        | command_line param_lines NEWLINE { sendRequest(result, mainList, $$); }
         ;
 
-command_line: COMMAND NEWLINE { splitCommand($1); } 
+command_line: COMMAND NEWLINE { splitCommand(mainList, $1); } 
 
 param_lines : param_lines param_line NEWLINE
             | param_line NEWLINE
             ;
 
-param_line : param_line COMMA ARG { addParam(&mainList, $3); }
-           | ARG COLON ARG { addCommand(&mainList, $1); addParam(&mainList, $3); }
-           | ARG COLON HOST_PORT { addCommand(&mainList, $1); addParam(&mainList, $3); }
+param_line : param_line COMMA ARG { addParam(mainList, $3); }
+           | ARG COLON ARG { addCommand(mainList, $1); addParam(mainList, $3); }
+           | ARG COLON HOST_PORT { addCommand(mainList, $1); addParam(mainList, $3); }
            ;
 
 %%
 
-void sendRequest(char *request) {
-    int i = processRequest(mainList->command, webSpacePath, mainList->paramList->parameter);
+void sendRequest(int *result, listptr mainList, char *request) {
+    *result = processRequest(mainList);
     write(logfile, "----------------------------------------\n\n", 43);
-    cleanupList(mainList);
-    mainList = NULL;
-    printf("%d processou o request com resultado %d\n", getpid(), i); fflush(stdout);
 }
 
-void splitCommand(char *text) {
+void splitCommand(listptr mainList, char *text) {
     char *tok = strtok(text, " ");
-    addCommand(&mainList, tok);
+    addCommand(mainList, tok);
     tok = strtok(NULL, " ");
-    addParam(&mainList, tok);
+    addParam(mainList, tok);
     tok = strtok(NULL, " ");
-    addParam(&mainList, tok);
+    addParam(mainList, tok);
 }

@@ -476,12 +476,13 @@ int yy_flex_debug = 0;
 char *yytext;
 #line 1 "http.l"
 #line 2 "http.l"
-#include "http.tab.h"
 #include <string.h>
 #include <stdio.h>
+#include "lists.h"
+#include "http.tab.h"
 extern int logfile;
-#line 484 "lex.yy.c"
 #line 485 "lex.yy.c"
+#line 486 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -698,10 +699,10 @@ YY_DECL
 		}
 
 	{
-#line 15 "http.l"
+#line 16 "http.l"
 
 
-#line 705 "lex.yy.c"
+#line 706 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -760,7 +761,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 17 "http.l"
+#line 18 "http.l"
 { write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 43);
                   write(logfile, yytext, yyleng);
                   strcpy(yylval.word, yytext);
@@ -768,33 +769,33 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 21 "http.l"
+#line 22 "http.l"
 { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return ARG; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 22 "http.l"
+#line 23 "http.l"
 { write(logfile, yytext, yyleng); return COLON; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 23 "http.l"
+#line 24 "http.l"
 { write(logfile, yytext, yyleng); return COMMA; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 24 "http.l"
+#line 25 "http.l"
 { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext);  return HOST_PORT; }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 25 "http.l"
+#line 26 "http.l"
 { write(logfile, yytext, yyleng); return NEWLINE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 26 "http.l"
+#line 27 "http.l"
 { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
                     printf("0x%x ", (int)yytext[i]); } 
@@ -802,10 +803,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 31 "http.l"
+#line 32 "http.l"
 ECHO;
 	YY_BREAK
-#line 809 "lex.yy.c"
+#line 810 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1810,7 +1811,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 31 "http.l"
+#line 32 "http.l"
 
 
 

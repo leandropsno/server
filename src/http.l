@@ -1,7 +1,8 @@
 %{
-#include "http.tab.h"
 #include <string.h>
 #include <stdio.h>
+#include "lists.h"
+#include "http.tab.h"
 extern int logfile;
 %}
 

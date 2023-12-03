@@ -17,7 +17,7 @@ typedef struct Response {
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
 Response createResponse();
 
-void httpError(Response *resp, char *message);
+void httpError(Response *resp, const char *message);
 
 // Armazena em BUF o conteúdo de um recurso em PATH.
 int readContent(char *path, Response *resp);
@@ -50,4 +50,4 @@ void OPTIONS(char *path, Response *resp);
 void TRACE(char *path, Response *resp);
 
 // Monta o PATH e chama o método HTTP adequado.
-int processRequest(char *method, char *host, char *resource);
+int processRequest(listptr mainList);
