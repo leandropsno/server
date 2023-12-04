@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include "lists.h"
 #include "http.h"
 
@@ -31,6 +32,7 @@ extern char webSpacePath[50];
 void httpError(int socket, Response *resp, const char *message) {
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content);
+    strcpy(resp->type, "text/html");
     flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
 
@@ -236,7 +238,7 @@ void OPTIONS(char *path, Response *resp, int socket) {
 
 void TRACE(char *path, Response *resp, int socket) {
     resp->code = OK;
-    codeMsg(resp);
+    sleep(10);
     strcpy(resp->type, "message/html");
     flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
@@ -257,6 +259,8 @@ int processRequest(listptr mainList, int socket) {
     char path[MAX_NAME] = "";
     strcat(path, webSpacePath);
     strcat(path, resource);
+
+    printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), path);
     
     if (strcmp(method, "GET") == 0) {
        GET(path, &resp, socket); 

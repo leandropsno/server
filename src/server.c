@@ -59,19 +59,27 @@ void *threadMain(void *socket) {
         char requestMessage[MAX_CONT];
         int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
         if (msgLen > 0) {
-            printf("Thread %ld leu %d bytes de requisicao\n", pthread_self(), msgLen); fflush(stdout);              
+            printf("Thread %ld leu %d bytes da seguinte requisicao: %s\n", pthread_self(), msgLen, requestMessage); fflush(stdout);              
             CommandNode* mainList = NULL; 
             yy_scan_string(requestMessage);
-            yyparse(&mainList, &result);
-            cleanupList(&mainList);
+            int error = yyparse(&mainList, &result, connection.fd);
             mainList = NULL;
+            cleanupList(&mainList);
+            if (error == 1) {
+                printf("yyparse() error: bad input\n");
+                errorHandler(connection.fd, NULL, "", pthread_self());
+            }
+            else if (error == 2) {
+                printf("yyparse() error: memory exhaustion\n");
+                errorHandler(connection.fd, NULL, "", pthread_self());
+            }
             printf("Thread %ld processou o request com resultado %d\n", pthread_self(), result); fflush(stdout);
         }
     }
     else if (n == 0)  {
         printf("Thread %ld não recebeu nenhuma requisição em %ld segundos\n", pthread_self(), timeout); fflush(stdout);
     }
-    else if (n < 0) errorHandler(socket, "Error in poll()", "", (pthread_t)0);
+    else if (n < 0) errorHandler(connection.fd, "Error in poll()", "", (pthread_t)0);
     pthread_mutex_lock(&mutex);
     shutdown(connection.fd, SHUT_RD);
     n_threads++;
@@ -128,11 +136,12 @@ void main(int argc, char **argv) {
 
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[4]);
-    sleep(60);
     while (1) {
         // Aguarda conexão no socket
         msgSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
         if (msgSocket < 0 && errno == EINTR) continue;
+
+        printf("Nova conexão recebida\n");
 
         // Cria thread, se houver alguma disponível.
         pthread_mutex_lock(&mutex);
@@ -140,7 +149,9 @@ void main(int argc, char **argv) {
             n_threads--;
             pthread_mutex_unlock(&mutex);
             pthread_t thread;
-            if (pthread_create(&thread, NULL, threadMain, (void *)(intptr_t)msgSocket) != 0) errorHandler(msgSocket, "Error in phtread_create()", "", (pthread_t)0);
+            if (pthread_create(&thread, NULL, threadMain, (void *)(intptr_t)msgSocket) != 0) {
+                errorHandler(msgSocket, "Error in phtread_create()", "", (pthread_t)0);
+            }
         }
         else {
             errorHandler(msgSocket, NULL, "Servidor sobrecarregado. Tente novamente mais tarde.", (pthread_t)0);

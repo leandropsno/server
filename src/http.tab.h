@@ -84,7 +84,7 @@ typedef union YYSTYPE YYSTYPE;
 extern YYSTYPE yylval;
 
 
-int yyparse (listptr mainList, int *result);
+int yyparse (listptr mainList, int *result, int socket);
 
 
 #endif /* !YY_YY_HTTP_TAB_H_INCLUDED  */

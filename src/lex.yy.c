@@ -480,9 +480,8 @@ char *yytext;
 #include <stdio.h>
 #include "lists.h"
 #include "http.tab.h"
-extern int logfile;
+#line 484 "lex.yy.c"
 #line 485 "lex.yy.c"
-#line 486 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -699,10 +698,10 @@ YY_DECL
 		}
 
 	{
-#line 16 "http.l"
+#line 15 "http.l"
 
 
-#line 706 "lex.yy.c"
+#line 705 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -761,41 +760,38 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 18 "http.l"
-{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 43);
-                  write(logfile, yytext, yyleng);
-                  strcpy(yylval.word, yytext);
-                  return COMMAND;  }
+#line 17 "http.l"
+{ strcpy(yylval.word, yytext); return COMMAND;  }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 22 "http.l"
-{ write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return ARG; }
+#line 18 "http.l"
+{ strcpy(yylval.word, yytext); return ARG; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 23 "http.l"
-{ write(logfile, yytext, yyleng); return COLON; }
+#line 19 "http.l"
+{ return COLON; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 24 "http.l"
-{ write(logfile, yytext, yyleng); return COMMA; }
+#line 20 "http.l"
+{ return COMMA; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 25 "http.l"
-{ write(logfile, yytext, yyleng); strcpy(yylval.word, yytext);  return HOST_PORT; }
+#line 21 "http.l"
+{ strcpy(yylval.word, yytext);  return HOST_PORT; }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 26 "http.l"
-{ write(logfile, yytext, yyleng); return NEWLINE; }
+#line 22 "http.l"
+{ return NEWLINE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 27 "http.l"
+#line 23 "http.l"
 { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
                     printf("0x%x ", (int)yytext[i]); } 
@@ -803,10 +799,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 32 "http.l"
+#line 28 "http.l"
 ECHO;
 	YY_BREAK
-#line 810 "lex.yy.c"
+#line 806 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1811,7 +1807,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 32 "http.l"
+#line 28 "http.l"
 
 
 

@@ -5,7 +5,7 @@ random_port=$((1024 + RANDOM % (65353 - 1024 + 1)))
 
 # Replace "your_executable" with the actual name of your executable
 executable="src/server"
-flags="~/webspace io/log.txt 2"
+flags="~/webspace io/log.txt 1"
 
 # Run the executable with the random port
 echo "Running $executable with random port: $random_port"

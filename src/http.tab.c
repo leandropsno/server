@@ -642,7 +642,7 @@ enum { YYENOMEM = -2 };
       }                                                           \
     else                                                          \
       {                                                           \
-        yyerror (mainList, result, YY_("syntax error: cannot back up")); \
+        yyerror (mainList, result, socket, YY_("syntax error: cannot back up")); \
         YYERROR;                                                  \
       }                                                           \
   while (0)
@@ -675,7 +675,7 @@ do {                                                                      \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Kind, Value, mainList, result); \
+                  Kind, Value, mainList, result, socket); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
@@ -687,12 +687,13 @@ do {                                                                      \
 
 static void
 yy_symbol_value_print (FILE *yyo,
-                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result)
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result, int socket)
 {
   FILE *yyoutput = yyo;
   YY_USE (yyoutput);
   YY_USE (mainList);
   YY_USE (result);
+  YY_USE (socket);
   if (!yyvaluep)
     return;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
@@ -707,12 +708,12 @@ yy_symbol_value_print (FILE *yyo,
 
 static void
 yy_symbol_print (FILE *yyo,
-                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result)
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, listptr mainList, int *result, int socket)
 {
   YYFPRINTF (yyo, "%s %s (",
              yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
-  yy_symbol_value_print (yyo, yykind, yyvaluep, mainList, result);
+  yy_symbol_value_print (yyo, yykind, yyvaluep, mainList, result, socket);
   YYFPRINTF (yyo, ")");
 }
 
@@ -746,7 +747,7 @@ do {                                                            \
 
 static void
 yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
-                 int yyrule, listptr mainList, int *result)
+                 int yyrule, listptr mainList, int *result, int socket)
 {
   int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
@@ -759,7 +760,7 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
                        YY_ACCESSING_SYMBOL (+yyssp[yyi + 1 - yynrhs]),
-                       &yyvsp[(yyi + 1) - (yynrhs)], mainList, result);
+                       &yyvsp[(yyi + 1) - (yynrhs)], mainList, result, socket);
       YYFPRINTF (stderr, "\n");
     }
 }
@@ -767,7 +768,7 @@ yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
 # define YY_REDUCE_PRINT(Rule)          \
 do {                                    \
   if (yydebug)                          \
-    yy_reduce_print (yyssp, yyvsp, Rule, mainList, result); \
+    yy_reduce_print (yyssp, yyvsp, Rule, mainList, result, socket); \
 } while (0)
 
 /* Nonzero means print parse trace.  It is left uninitialized so that
@@ -808,11 +809,12 @@ int yydebug;
 
 static void
 yydestruct (const char *yymsg,
-            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, listptr mainList, int *result)
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, listptr mainList, int *result, int socket)
 {
   YY_USE (yyvaluep);
   YY_USE (mainList);
   YY_USE (result);
+  YY_USE (socket);
   if (!yymsg)
     yymsg = "Deleting";
   YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
@@ -839,7 +841,7 @@ int yynerrs;
 `----------*/
 
 int
-yyparse (listptr mainList, int *result)
+yyparse (listptr mainList, int *result, int socket)
 {
     yy_state_fast_t yystate = 0;
     /* Number of tokens to shift before error messages enabled.  */
@@ -1082,42 +1084,42 @@ yyreduce:
     {
   case 4: /* request: command_line NEWLINE  */
 #line 26 "http.y"
-                               { sendRequest(result, mainList, (yyval.word)); }
-#line 1087 "http.tab.c"
+                               { *result = processRequest(mainList, socket); }
+#line 1089 "http.tab.c"
     break;
 
   case 5: /* request: command_line param_lines NEWLINE  */
 #line 27 "http.y"
-                                           { sendRequest(result, mainList, (yyval.word)); }
-#line 1093 "http.tab.c"
+                                           { *result = processRequest(mainList, socket); }
+#line 1095 "http.tab.c"
     break;
 
   case 6: /* command_line: COMMAND NEWLINE  */
 #line 30 "http.y"
                               { splitCommand(mainList, (yyvsp[-1].word)); }
-#line 1099 "http.tab.c"
+#line 1101 "http.tab.c"
     break;
 
   case 9: /* param_line: param_line COMMA ARG  */
 #line 36 "http.y"
                                   { addParam(mainList, (yyvsp[0].word)); }
-#line 1105 "http.tab.c"
+#line 1107 "http.tab.c"
     break;
 
   case 10: /* param_line: ARG COLON ARG  */
 #line 37 "http.y"
                            { addCommand(mainList, (yyvsp[-2].word)); addParam(mainList, (yyvsp[0].word)); }
-#line 1111 "http.tab.c"
+#line 1113 "http.tab.c"
     break;
 
   case 11: /* param_line: ARG COLON HOST_PORT  */
 #line 38 "http.y"
                                  { addCommand(mainList, (yyvsp[-2].word)); addParam(mainList, (yyvsp[0].word)); }
-#line 1117 "http.tab.c"
+#line 1119 "http.tab.c"
     break;
 
 
-#line 1121 "http.tab.c"
+#line 1123 "http.tab.c"
 
       default: break;
     }
@@ -1164,7 +1166,7 @@ yyerrlab:
   if (!yyerrstatus)
     {
       ++yynerrs;
-      yyerror (mainList, result, YY_("syntax error"));
+      yyerror (mainList, result, socket, YY_("syntax error"));
     }
 
   if (yyerrstatus == 3)
@@ -1181,7 +1183,7 @@ yyerrlab:
       else
         {
           yydestruct ("Error: discarding",
-                      yytoken, &yylval, mainList, result);
+                      yytoken, &yylval, mainList, result, socket);
           yychar = YYEMPTY;
         }
     }
@@ -1237,7 +1239,7 @@ yyerrlab1:
 
 
       yydestruct ("Error: popping",
-                  YY_ACCESSING_SYMBOL (yystate), yyvsp, mainList, result);
+                  YY_ACCESSING_SYMBOL (yystate), yyvsp, mainList, result, socket);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
@@ -1275,7 +1277,7 @@ yyabortlab:
 | yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
 `-----------------------------------------------------------*/
 yyexhaustedlab:
-  yyerror (mainList, result, YY_("memory exhausted"));
+  yyerror (mainList, result, socket, YY_("memory exhausted"));
   yyresult = 2;
   goto yyreturnlab;
 
@@ -1290,7 +1292,7 @@ yyreturnlab:
          user semantic actions for why this is necessary.  */
       yytoken = YYTRANSLATE (yychar);
       yydestruct ("Cleanup: discarding lookahead",
-                  yytoken, &yylval, mainList, result);
+                  yytoken, &yylval, mainList, result, socket);
     }
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYABORT or YYACCEPT.  */
@@ -1299,7 +1301,7 @@ yyreturnlab:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp, mainList, result);
+                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp, mainList, result, socket);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -1312,11 +1314,6 @@ yyreturnlab:
 
 #line 41 "http.y"
 
-
-void sendRequest(int *result, listptr mainList, char *request) {
-    *result = processRequest(mainList);
-    write(logfile, "----------------------------------------\n\n", 43);
-}
 
 void splitCommand(listptr mainList, char *text) {
     char *tok = strtok(text, " ");

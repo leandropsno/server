@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include "lists.h"
 #include "http.tab.h"
-extern int logfile;
 %}
 
 COMMAND     (GET|HEAD|OPTIONS|TRACE)[ ][^ :,\t\r\n]+[ ][^ :,\t\r\n]+
@@ -15,15 +14,12 @@ NEWLINE     (\r\n)
 
 %%
 
-{COMMAND}		{ write(logfile, "----- NOVO PAR REQUISIÇÃO/RESPOSTA -----\n", 43);
-                  write(logfile, yytext, yyleng);
-                  strcpy(yylval.word, yytext);
-                  return COMMAND;  }
-{ARG}           { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return ARG; }
-{COLON}         { write(logfile, yytext, yyleng); return COLON; }
-{COMMA}         { write(logfile, yytext, yyleng); return COMMA; }
-{HOST_PORT}     { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext);  return HOST_PORT; }
-{NEWLINE}       { write(logfile, yytext, yyleng); return NEWLINE; }
+{COMMAND}		{ strcpy(yylval.word, yytext); return COMMAND;  }
+{ARG}           { strcpy(yylval.word, yytext); return ARG; }
+{COLON}         { return COLON; }
+{COMMA}         { return COMMA; }
+{HOST_PORT}     { strcpy(yylval.word, yytext);  return HOST_PORT; }
+{NEWLINE}       { return NEWLINE; }
 .               { printf("Sequência não reconhecida: ");
                     for (int i = 0; i < yyleng; i++) {
                     printf("0x%x ", (int)yytext[i]); } 
