@@ -20,16 +20,18 @@
 #define FORBIDDEN 403
 #define OK 200
 #define INTERNAL_ERROR 500
+#define PRINT_CONT_HEADER 1
+#define PRINT_LM 2
+#define PRINT_ALLOW 4
+#define PRINT_CONTENT 8
 
 extern int messageSocket, logfile;
 extern char webSpacePath[50];
 
 void httpError(Response *resp, const char *message) {
-    if (message == NULL) message = "";
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
-    flushCommonHeader(resp);
-    flushContent(resp);
-    write(logfile, "----------------------------------------\n\n", 43);
+    resp->size = strlen(resp->content);
+    flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
 
 Response createResponse() {
@@ -38,10 +40,11 @@ Response createResponse() {
     gettimeofday(&tv, NULL);
 
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
+    resp.rdate[strlen(resp.rdate)-1] = 0;   // Tira quebra de linha do final
     strcpy(resp.server, "Servidor HTTP versão 11 de Leandro Ponsano");
     strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
-
+    resp.size = 0;
     return resp;
 }
 
@@ -62,6 +65,16 @@ void codeMsg(Response *resp) {
     }
 }
 
+void getType(char *type, char *filename) {
+    char name[strlen(filename)];
+    strcpy(name, filename);
+    char *tok = strtok(name, ".");
+    while (tok != NULL) {
+        strcpy(type, tok);
+        tok = strtok(NULL, ".");
+    }
+}
+
 int readContent(char *path, Response *resp) {
     int fd;
     if ((fd = open(path, O_RDONLY)) == -1) {
@@ -72,40 +85,6 @@ int readContent(char *path, Response *resp) {
     i = read(fd, resp->content, MAX_CONT);
     close(fd);
     return i;
-}
-
-void searchDir(char *path, Response *resp) {
-    char resources[2][13] = {"/index.html", "/welcome.html"};
-    char filename[MAX_NAME];
-    int found = 0, read = 0;
-
-    for (int i = 0; i < 2; i++) {
-        // Monta path para o recurso padrão
-        strcpy(filename, path);
-        strcat(filename, resources[i]);
-
-        // Acessa estatísticas do recurso
-        struct stat file_stats;
-        if (stat(filename, &file_stats) == 0) {
-            found = 1;
-            // Preenche Content-Type, Content-Length e Last-Modified
-            strcpy(resp->type, "text/html");
-            resp->size = (int)file_stats.st_size;
-            strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime)));
-            if (access(filename, R_OK) == 0) { // Encontrou um arquivo com permissão de leitura
-                readContent(filename, resp);
-                resp->code = OK;  
-                read = 1;
-            }
-        }
-    }
-
-    if (!found) { // Se nenhum dos dois foi encontrado
-        resp->code = NOT_FOUND;
-    }
-    else if (!read) {  // Se algum foi encontrado mas nenhum tinha permissao de leitura
-        resp->code = FORBIDDEN;
-    }
 }
 
 int checkPath(char *path) {
@@ -129,6 +108,40 @@ int checkPath(char *path) {
     return counter;
 }
 
+void searchDir(char *path, Response *resp) {
+    char resources[2][13] = {"/index.html", "/welcome.html"};
+    char filename[MAX_NAME];
+    int found = 0, read = 0, len;
+
+    for (int i = 0; i < 2; i++) {
+        // Monta path para o recurso padrão
+        strcpy(filename, path);
+        strcat(filename, resources[i]);
+
+        // Acessa estatísticas do recurso
+        struct stat file_stats;
+        if (stat(filename, &file_stats) == 0) {
+            found = 1;
+            if (access(filename, R_OK) == 0) { // Encontrou um arquivo com permissão de leitura
+                len = readContent(filename, resp);
+                resp->code = OK;  
+                read = 1;
+                resp->size = len;
+                strcpy(resp->type, "text/html");
+                strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime)));
+                resp->lmdate[strlen(resp->lmdate)-1] = 0;   // Tira quebra de linha do final
+            }
+        }
+    }
+
+    if (!found) { // Se nenhum dos dois foi encontrado
+        resp->code = NOT_FOUND;
+    }
+    else if (!read) {  // Se algum foi encontrado mas nenhum tinha permissao de leitura
+        resp->code = FORBIDDEN;
+    }
+}
+
 void accessResource(char *path, Response *resp) {
 
     struct stat resource_stats;
@@ -140,16 +153,18 @@ void accessResource(char *path, Response *resp) {
     switch (resource_stats.st_mode & S_IFMT)
     {
         case S_IFREG :  // Se o recurso for um arquivo regular
-            // Preenche Content-Type, Content-Length e Last-Modified
-            strcpy(resp->type, "text/html");
-            resp->size = (int)resource_stats.st_size;
-            strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
+            
             if ((access(path, R_OK) != 0)) {    // Se não tem permissão de leitura
                 resp->code = FORBIDDEN;
             }
             else {
-                readContent(path, resp);
+                // Preenche Content-Type, Content-Length e Last-Modified
+                getType(resp->type, path);
+                int len = readContent(path, resp);
                 resp->code = OK;
+                resp->size = len;
+                strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
+                resp->lmdate[strlen(resp->lmdate)-1] = 0;   // Tira quebra de linha do final
             }
             break;
             
@@ -164,41 +179,33 @@ void accessResource(char *path, Response *resp) {
     }
 }
 
-void flushCommonHeader(Response *resp) {
-    dprintf(messageSocket, "HTTP/1.1 %d %s\n", resp->code, resp->result);  
-    dprintf(messageSocket, "Date: %s", resp->rdate);
-    dprintf(messageSocket, "Server: %s\n", resp->server);    
-    dprintf(messageSocket, "Connection: %s\n", resp->connection);
-
-    dprintf(logfile, "HTTP/1.1 %d %s\n", resp->code, resp->result);  
-    dprintf(logfile, "Date: %s", resp->rdate);
-    dprintf(logfile, "Server: %s\n", resp->server);    
-    dprintf(logfile, "Connection: %s\n", resp->connection);
-}
-
-void flushContentHeaders(Response *resp) {   
-    dprintf(messageSocket, "Last-Modified: %s", resp->lmdate);   
-    dprintf(messageSocket, "Content-Length: %d\n", resp->size);   
-    dprintf(messageSocket, "Content-Type: %s\n", resp->type);
-
-    dprintf(logfile, "Last-Modified: %s", resp->lmdate);   
-    dprintf(logfile, "Content-Length: %d\n", resp->size);   
-    dprintf(logfile, "Content-Type: %s\n", resp->type);
-}
-
-void flushContent(Response *resp) {  
-    dprintf(messageSocket, "\n");
-    dprintf(messageSocket, "%s", resp->content);
+void flushResponse(int fd, Response *resp, int fields) {
+    dprintf(fd, "HTTP/1.1 %d %s\r\n", resp->code, resp->result);  
+    dprintf(fd, "Date: %s\r\n", resp->rdate);
+    dprintf(fd, "Server: %s\r\n", resp->server);    
+    dprintf(fd, "Connection: %s\r\n", resp->connection);
+    if (fields & PRINT_CONT_HEADER) { 
+        dprintf(fd, "Content-Type: %s\r\n", resp->type);
+        dprintf(fd, "Content-Length: %d\r\n", resp->size);   
+    }
+    if (fields & PRINT_ALLOW) {
+        dprintf(fd, "Allow: %s\r\n", resp->allow);
+    }
+    if (fields & PRINT_LM) {
+        dprintf(fd, "Last-Modified: %s\r\n", resp->lmdate);  
+    }
+    if (fields & PRINT_CONTENT) {
+        dprintf(fd, "\r\n");
+        write(fd, resp->content, resp->size);
+    }
+    dprintf(fd, "\r\n");
 }
 
 void GET(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushCommonHeader(resp);
-        flushContentHeaders(resp);
-        flushContent(resp);
-        write(logfile, "----------------------------------------\n\n", 43);
+        flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT | PRINT_LM);
     }
     else {
         httpError(resp, NULL);
@@ -209,9 +216,7 @@ void HEAD(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushCommonHeader(resp);
-        flushContentHeaders(resp);
-        write(logfile, "----------------------------------------\n\n", 43);
+        flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_LM);
     }
     else {
         httpError(resp, NULL);
@@ -222,10 +227,7 @@ void OPTIONS(char *path, Response *resp) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        dprintf(messageSocket, "Allow: %s\n", resp->allow);
-        dprintf(logfile, "Allow: %s\n", resp->allow);
-        flushCommonHeader(resp);
-        write(logfile, "----------------------------------------\n\n", 43);
+        flushResponse(messageSocket, resp, PRINT_ALLOW);
     }
     else {
         httpError(resp, NULL);
@@ -236,10 +238,7 @@ void TRACE(char *path, Response *resp) {
     resp->code = OK;
     codeMsg(resp);
     strcpy(resp->type, "message/html");
-    dprintf(messageSocket, "Content-Type: %s\n", resp->type);
-    dprintf(logfile, "Content-Type: %s\n", resp->type);
-    write(logfile, "----------------------------------------\n\n", 43);
-    flushContent(resp);
+    flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
 
 int processRequest(listptr mainList) {
@@ -249,7 +248,8 @@ int processRequest(listptr mainList) {
     char *method = list->command;
     char *resource = list->paramList->parameter;
 
-    if (checkPath(&resource[1]) < 0) {      // Se o recurso está fora do webspace
+    // Se o recurso está fora do webspace
+    if (checkPath(&resource[1]) < 0) {
         return FORBIDDEN;
     }
 
