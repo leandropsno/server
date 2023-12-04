@@ -25,13 +25,13 @@
 #define PRINT_ALLOW 4
 #define PRINT_CONTENT 8
 
-extern int messageSocket, logfile;
+extern int logfile;
 extern char webSpacePath[50];
 
-void httpError(Response *resp, const char *message) {
+void httpError(int socket, Response *resp, const char *message) {
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content);
-    flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
+    flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
 
 Response createResponse() {
@@ -201,47 +201,47 @@ void flushResponse(int fd, Response *resp, int fields) {
     dprintf(fd, "\r\n");
 }
 
-void GET(char *path, Response *resp) {
+void GET(char *path, Response *resp, int socket) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT | PRINT_LM);
+        flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT | PRINT_LM);
     }
     else {
-        httpError(resp, NULL);
+        httpError(socket, resp, "");
     }
 }
 
-void HEAD(char *path, Response *resp) {
+void HEAD(char *path, Response *resp, int socket) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_LM);
+        flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_LM);
     }
     else {
-        httpError(resp, NULL);
+        httpError(socket, resp, "");
     }
 }
 
-void OPTIONS(char *path, Response *resp) {
+void OPTIONS(char *path, Response *resp, int socket) {
     accessResource(path, resp);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushResponse(messageSocket, resp, PRINT_ALLOW);
+        flushResponse(socket, resp, PRINT_ALLOW);
     }
     else {
-        httpError(resp, NULL);
+        httpError(socket, resp, "");
     }
 }
 
-void TRACE(char *path, Response *resp) {
+void TRACE(char *path, Response *resp, int socket) {
     resp->code = OK;
     codeMsg(resp);
     strcpy(resp->type, "message/html");
-    flushResponse(messageSocket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
+    flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
 }
 
-int processRequest(listptr mainList) {
+int processRequest(listptr mainList, int socket) {
     Response resp = createResponse();
     
     CommandNode *list = *mainList;
@@ -259,17 +259,17 @@ int processRequest(listptr mainList) {
     strcat(path, resource);
     
     if (strcmp(method, "GET") == 0) {
-       GET(path, &resp); 
+       GET(path, &resp, socket); 
     }
     else if (strcmp(method, "HEAD") == 0) {
-        HEAD(path, &resp);
+        HEAD(path, &resp, socket);
     }
     else if (strcmp(method, "TRACE") == 0) {
         printOriginal(resp.content, mainList);
-        TRACE(path, &resp);
+        TRACE(path, &resp, socket);
     }
     else if (strcmp(method, "OPTIONS") == 0) {
-        OPTIONS(path, &resp);
+        OPTIONS(path, &resp, socket);
     }
 
     return resp.code;

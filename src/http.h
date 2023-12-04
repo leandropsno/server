@@ -17,7 +17,8 @@ typedef struct Response {
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
 Response createResponse();
 
-void httpError(Response *resp, const char *message);
+// Cria uma página html de erro conforme o código de RESP, contendo a mensagem MESSAGE e imprime em SOCKET.
+void httpError(int socket, Response *resp, const char *message);
 
 // Armazena em BUF o conteúdo de um recurso em PATH.
 int readContent(char *path, Response *resp);
@@ -31,23 +32,17 @@ void accessResource(char *path, Response *resp);
 // Guarda em RESULT a mensagem correspondente a CODE.
 void codeMsg(Response *resp);
 
-// Imprime, no arquivo de resposta e de registro, os campos de cabeçalho comuns (code, date, server, connection).
-void flushCommonHeader(Response *resp);
-
-// Imprime, no arquivo de resposta e de registro, os campos de cabeçalho relacionados a conteúdo. (last-modified, type, length).
-void flushContentHeaders(Response *resp);
-
-// Imprime o conteúdo da resposta.
-void flushContent(Response *resp);
+// Imprime os campos de RESP especificados em FIELDS no descritor FD.
+void flushResponse(int fd, Response *resp, int fields);
 
 // Monta a resposta referente a uma requisição do tipo GET.
-void GET(char *path, Response *resp);
+void GET(char *path, Response *resp, int socket);
 
 // Monta a resposta referente a uma requisição do tipo OPTIONS.
-void OPTIONS(char *path, Response *resp);
+void OPTIONS(char *path, Response *resp, int socket);
 
 // Monta a resposta referente a uma requisição do tipo TRACE.
-void TRACE(char *path, Response *resp);
+void TRACE(char *path, Response *resp, int socket);
 
 // Monta o PATH e chama o método HTTP adequado.
-int processRequest(listptr mainList);
+int processRequest(listptr mainList, int socket);

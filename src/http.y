@@ -16,15 +16,15 @@ extern int logfile;
 %token <word> COMMAND ARG HOST_PORT
 %token COLON NEWLINE COMMA
 %type <word> request
-%parse-param { listptr mainList } { int *result }
+%parse-param { listptr mainList } { int *result } { int socket }
 %%
 
 requests : requests request
          | request
          ;
 
-request : command_line NEWLINE { sendRequest(result, mainList, $$); }
-        | command_line param_lines NEWLINE { sendRequest(result, mainList, $$); }
+request : command_line NEWLINE { *result = processRequest(mainList, socket); }
+        | command_line param_lines NEWLINE { *result = processRequest(mainList, socket); }
         ;
 
 command_line: COMMAND NEWLINE { splitCommand(mainList, $1); } 
@@ -39,11 +39,6 @@ param_line : param_line COMMA ARG { addParam(mainList, $3); }
            ;
 
 %%
-
-void sendRequest(int *result, listptr mainList, char *request) {
-    *result = processRequest(mainList);
-    write(logfile, "----------------------------------------\n\n", 43);
-}
 
 void splitCommand(listptr mainList, char *text) {
     char *tok = strtok(text, " ");

@@ -21,7 +21,7 @@
 #define INTERNAL_ERROR 500
 
 char webSpacePath[50];
-int connectionSocket, messageSocket, logfile;
+int connectionSocket, logfile;
 int n_threads;
 struct pollfd connection;
 long unsigned int timeout = 4000;
@@ -33,12 +33,12 @@ void intHandler() {
     exit(0);
 }
 
-void errorHandler(const char *func, const char *message, pthread_t thread) {
+void errorHandler(int socket, const char *func, const char *message, pthread_t thread) {
     if (func != NULL) perror(func);
     Response resp = createResponse();
     resp.code = INTERNAL_ERROR;
     codeMsg(&resp);
-    httpError(&resp, message);
+    httpError(socket, &resp, message);
     if (thread != 0) {
         printf("Thread %ld processou o request com resultado %d\n", thread, resp.code); fflush(stdout);
         pthread_mutex_lock(&mutex);
@@ -71,7 +71,7 @@ void *threadMain(void *socket) {
     else if (n == 0)  {
         printf("Thread %ld não recebeu nenhuma requisição em %ld segundos\n", pthread_self(), timeout); fflush(stdout);
     }
-    else if (n < 0) errorHandler("Error in poll()", NULL, (pthread_t)0);
+    else if (n < 0) errorHandler(socket, "Error in poll()", "", (pthread_t)0);
     pthread_mutex_lock(&mutex);
     shutdown(connection.fd, SHUT_RD);
     n_threads++;
@@ -91,7 +91,10 @@ int connectSocket(char *port) {
     server.sin_port = htons((unsigned short)atoi(port));
     server.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) errorHandler("Error in bind()", NULL, (pthread_t)0);
+    if (bind(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        perror("Error in bind()");
+        exit(1);
+    }
     listen(sock, 5);
     printf("%s aceitando conexões\n", port);
     return sock;
@@ -100,6 +103,7 @@ int connectSocket(char *port) {
 void main(int argc, char **argv) {
     struct sockaddr_in cliente;
     unsigned int nameLen = sizeof(cliente);
+    int msgSocket;
 
     // Verifica número de argumentos
     if ((argc < 5) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
@@ -127,8 +131,8 @@ void main(int argc, char **argv) {
     sleep(60);
     while (1) {
         // Aguarda conexão no socket
-        messageSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
-        if (messageSocket < 0 && errno == EINTR) continue;
+        msgSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
+        if (msgSocket < 0 && errno == EINTR) continue;
 
         // Cria thread, se houver alguma disponível.
         pthread_mutex_lock(&mutex);
@@ -136,10 +140,10 @@ void main(int argc, char **argv) {
             n_threads--;
             pthread_mutex_unlock(&mutex);
             pthread_t thread;
-            if (pthread_create(&thread, NULL, threadMain, (void *)(intptr_t)messageSocket) != 0) errorHandler("Error in phtread_create()", NULL, (pthread_t)0);
+            if (pthread_create(&thread, NULL, threadMain, (void *)(intptr_t)msgSocket) != 0) errorHandler(msgSocket, "Error in phtread_create()", "", (pthread_t)0);
         }
         else {
-            errorHandler(NULL, "Servidor sobrecarregado. Tente novamente mais tarde.", (pthread_t)0);
+            errorHandler(msgSocket, NULL, "Servidor sobrecarregado. Tente novamente mais tarde.", (pthread_t)0);
             printf("Servidor sobrecarregado\n");
         }
     }
