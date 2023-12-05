@@ -47,6 +47,9 @@ void errorHandler(int socket, const char *func, const char *message, pthread_t t
         pthread_mutex_unlock(&mutex);
         pthread_exit(0);
     }
+    else {
+        printf("Thread mãe processou o request com resultado %d\n", resp.code); fflush(stdout);
+    }
 }
 
 void *threadMain(void *socket) {
@@ -61,8 +64,10 @@ void *threadMain(void *socket) {
         if (msgLen > 0) {
             printf("Thread %ld leu %d bytes de requisicao\n", pthread_self(), msgLen); fflush(stdout);              
             CommandNode* mainList = NULL; 
+            pthread_mutex_lock(&mutex);
             yy_scan_string(requestMessage);
             int error = yyparse(&mainList, &result, connection.fd);
+            pthread_mutex_unlock(&mutex);
             mainList = NULL;
             cleanupList(&mainList);
             if (error == 1) {
@@ -132,10 +137,12 @@ void main(int argc, char **argv) {
         exit(1);
     }
 
+    // Define o tratador de interrupção
     signal(SIGINT, intHandler);
 
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[4]);
+    sleep(60);
     while (1) {
         // Aguarda conexão no socket
         msgSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);

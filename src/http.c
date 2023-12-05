@@ -250,7 +250,7 @@ int processRequest(listptr mainList, int socket) {
     char *method = list->command;
     char *resource = list->paramList->parameter;
 
-    // Se o recurso está fora do webspace
+    // Confere se o recurso está fora do webspace
     if (checkPath(&resource[1]) < 0) {
         return FORBIDDEN;
     }
