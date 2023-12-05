@@ -1,5 +1,5 @@
 cd src
 bison -d http.y
 flex http.l
-gcc -o server server.c lex.yy.c http.c lists.c ast.c http.tab.c -lfl -ly -lpthread -g
+gcc -o server server.c lex.yy.c http.c lists.c ast.c http.tab.c -lfl -ly -lpthread -lcrypt -g
 cd ..

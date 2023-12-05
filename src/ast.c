@@ -86,14 +86,36 @@ int b64_decode(const char *in, unsigned char *out, size_t outlen)
 	return 1;
 }
 
-char *mystrtok(char *str, char *delim, char *next) {
-    char *tok = strtok(str, delim);
-    if (tok != NULL) next = str + strlen(tok) + strlen(delim);
-    if (!strcmp(str, tok)) next = NULL;
-    return tok;
+char *mystrtok(char *str, char *tok, char delim) {
+    int i = 0;
+	char *next = str;
+	while (str[i] != delim) {
+		tok[i] = str[i];
+		if (str[i] == 0) {
+			return NULL;
+		}
+		i++;
+		next++;
+	}
+	tok[i] = 0;
+	while (str[i] == delim) {
+		next++;
+		i++;
+	}
+    return next;
 }
 
-int main(int argc, char **argv){
+int main() {
+	char str[] = "dir4/dir41/../index.html";
+	char tok[strlen(str)];
+	char *next;
+	next = mystrtok(str, tok, '/');
+	next = mystrtok(next, tok, '/');
+	next = mystrtok(next, tok, '/');
+	next = mystrtok(next, tok, '/');
+}
+
+int __main(int argc, char **argv){
 	if (argc < 3) exit(0);
 	printf("\n( Salt = %s ) + ( Password = %s ) ==> ( crypt = %s )\n\n",
 				argv[2], argv[1], crypt(argv[1], argv[2]));
