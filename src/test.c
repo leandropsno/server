@@ -7,7 +7,7 @@ char webSpacePath[50] = "../webspace";
 
 void main() {
 
-    char resource[] = "dir4/dir41/../index.html";
+    char resource[] = "";
     Response resp = createResponse();
     GET(resource, &resp, 0); 
 

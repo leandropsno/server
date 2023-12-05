@@ -15,8 +15,8 @@
 #include "http.h"
 #include "ast.h"
 
-#define MAX_REQ 1024
-#define MAX_NAME 128
+#define MAX_REQ 2048
+#define MAX_NAME 256
 #define MAX_CMD 8
 #define NOT_FOUND 404
 #define FORBIDDEN 403
@@ -44,8 +44,8 @@ void httpError(int socket, Response *resp, const char *message) {
 Response createResponse() {
     Response resp;
     struct timeval tv;
-    gettimeofday(&tv, NULL);
 
+    gettimeofday(&tv, NULL);
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
     resp.rdate[strlen(resp.rdate)-1] = 0;   // Tira quebra de linha do final
     strcpy(resp.server, "Servidor HTTP versão 11 de Leandro Ponsano");
@@ -87,11 +87,12 @@ void getType(char *type, char *filename) {
 
 int readContent(char *path, Response *resp) {
     int fd;
+    ssize_t i;
+
     if ((fd = open(path, O_RDONLY)) == -1) {
         resp->code = INTERNAL_ERROR;
         return -1; 
     }
-    ssize_t i;
     i = read(fd, resp->content, MAX_CONT);
     close(fd);
     return i;
@@ -100,9 +101,9 @@ int readContent(char *path, Response *resp) {
 void searchDir(char *path, Response *resp) {
     char resources[2][13] = {"/index.html", "/welcome.html"};
     char filename[MAX_NAME];
-    int found = 0, read = 0, len;
+    int found = 0, read = 0, len, i;
 
-    for (int i = 0; i < 2; i++) {
+    for (i = 0; i < 2; i++) {
         // Monta path para o recurso padrão
         strcpy(filename, path);
         strcat(filename, resources[i]);
@@ -131,17 +132,35 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
+// Verifica a existência de arquivo .htaccess
+int authenticate(char *dir, Response *resp) {
+    char htacc_path[MAX_NAME], htacc_cont[MAX_NAME], realm[MAX_NAME];
+    char *htass_path;
+    struct stat htaccess_stats;
+    int len, htacc;
+
+    strcat(htacc_path, dir);
+    strcat(htacc_path, "/.htaccess");
+    if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
+        resp->code = AUTH_REQUIRED;
+        strcpy(resp->auth, "Basic realm=");
+        htacc = open(htacc_path, O_RDONLY);
+        len = read(htacc, htacc_cont, MAX_NAME);
+        htass_path = mystrtok(htacc_cont, realm, '\n');
+        strcat(resp->auth, realm);
+        return 1;
+    }
+    return 0;
+}
+
 void accessResource(char *dir, char *res, Response *resp, int depth) {
+    struct stat resource_stats;;
+    char path[MAX_NAME], target[MAX_NAME];
+    char *next;
+    int len, auth;
 
     // Verifica a existência de arquivo de proteção .htaccess
-    struct stat htaccess_stats;
-    char htaccess[MAX_NAME] = "";
-    strcat(htaccess, dir);
-    strcat(htaccess, "/.htaccess");
-    if (stat(htaccess, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
-        resp->code = AUTH_REQUIRED;
-        return;
-    }
+    if ((auth = authenticate(dir, resp))) return;
 
     // Se estiver tentando acessar algo fora do webspace
     if (depth < 0) {
@@ -150,14 +169,12 @@ void accessResource(char *dir, char *res, Response *resp, int depth) {
     }
 
     // Monta o path para o recurso
-    char path[MAX_NAME] = "";
-    char *next;
+    next = mystrtok(res, target, '/');
     strcat(path, dir);
     strcat(path, "/");
-    char *this = mystrtok(res, "/", next);
-    strcat(path, this);
+    strcat(path, target);
 
-    struct stat resource_stats;
+    // Acessa estatísticas do recurso
     if (stat(path, &resource_stats) == -1) {    // Se o recurso não for encontrado
         resp->code = NOT_FOUND;
         return;
@@ -165,12 +182,12 @@ void accessResource(char *dir, char *res, Response *resp, int depth) {
 
     switch (resource_stats.st_mode & S_IFMT) {
         // Se o recurso for um arquivo regular
-        case S_IFREG :  
+        case S_IFREG:
             if ((access(path, R_OK) != 0)) resp->code = FORBIDDEN;  // Se não tem permissão de leitura
             else {
                 // Preenche Content-Type, Content-Length e Last-Modified
                 getType(resp->type, path);
-                int len = readContent(path, resp);
+                len = readContent(path, resp);
                 resp->code = OK;
                 resp->size = len;
                 strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
@@ -178,13 +195,13 @@ void accessResource(char *dir, char *res, Response *resp, int depth) {
             }
             break;
         // Se o recurso for um diretório   
-        case S_IFDIR :  
+        case S_IFDIR:
             if (next == NULL) { // Se é o final do path
                 if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
                 else searchDir(path, resp);
             }
-            else if (!strcmp(this, "..")) accessResource(path, next, resp, depth - 1);  // Se for o diretório pai
-            else if (!strcmp(this, ".")) accessResource(path, next, resp, depth);  // Se for o próprio diretório
+            else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1);  // Se for o diretório pai
+            else if (!strcmp(target, ".")) accessResource(path, next, resp, depth);  // Se for o próprio diretório
             else accessResource(path, next, resp, depth + 1);  // Se for um diretório filho
             break;
     }

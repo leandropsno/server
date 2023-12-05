@@ -105,7 +105,7 @@ char *mystrtok(char *str, char *tok, char delim) {
     return next;
 }
 
-int main() {
+int ___main() {
 	char str[] = "dir4/dir41/../index.html";
 	char tok[strlen(str)];
 	char *next;

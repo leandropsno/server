@@ -21,7 +21,7 @@ extern int logfile;
 %parse-param { listptr mainList } { int *result } { int socket }
 %%
 
-request : command_line NEWLINE { *result = processRequest(mainList, socket); }
+request : command_line NEWLINE { printf("vou processar a requisicao\n"); *result = processRequest(mainList, socket); }
         | command_line param_lines NEWLINE { *result = processRequest(mainList, socket); }
         ;
 
