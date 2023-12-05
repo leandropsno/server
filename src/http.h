@@ -1,5 +1,6 @@
 #define MAX_PARAM 64
 #define MAX_CONT 4096
+#include "lists.h"
 
 typedef struct Response {
     int code;
@@ -12,6 +13,7 @@ typedef struct Response {
     char lmdate[MAX_PARAM];
     char type[MAX_PARAM];
     char allow[MAX_PARAM];
+    char auth[MAX_PARAM];
 } Response;
 
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
@@ -26,8 +28,8 @@ int readContent(char *path, Response *resp);
 // Percorre o diretório buscando os arquivos padrão (index.html e welcome.html).
 void searchDir(char *path, Response *resp);
 
-// Acessa as estatísticas do recurso em PATH, preenche parâmetros e conteúdo da resposta.
-void accessResource(char *path, Response *resp);
+// Acessa as estatísticas do recurso RES no diretório DIR, preenche parâmetros e conteúdo da resposta.
+void accessResource(char *dir, char *res, Response *resp, int depth);
 
 // Guarda em RESULT a mensagem correspondente a CODE.
 void codeMsg(Response *resp);

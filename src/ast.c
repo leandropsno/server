@@ -1,6 +1,9 @@
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <crypt.h>
 
 const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -83,7 +86,21 @@ int b64_decode(const char *in, unsigned char *out, size_t outlen)
 	return 1;
 }
 
-int main(int argc, char **argv)
+char *mystrtok(char *str, char *delim, char *next) {
+    char *tok = strtok(str, delim);
+    if (tok != NULL) next = str + strlen(tok) + strlen(delim);
+    if (!strcmp(str, tok)) next = NULL;
+    return tok;
+}
+
+int main(int argc, char **argv){
+	if (argc < 3) exit(0);
+	printf("\n( Salt = %s ) + ( Password = %s ) ==> ( crypt = %s )\n\n",
+				argv[2], argv[1], crypt(argv[1], argv[2]));
+	return(0);
+}
+
+int _main(int argc, char **argv)
 {
 	const char *enc = argv[1];
 	char       *out;

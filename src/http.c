@@ -13,18 +13,21 @@
 #include <pthread.h>
 #include "lists.h"
 #include "http.h"
+#include "ast.h"
 
 #define MAX_REQ 1024
 #define MAX_NAME 128
 #define MAX_CMD 8
 #define NOT_FOUND 404
 #define FORBIDDEN 403
+#define AUTH_REQUIRED 401
 #define OK 200
 #define INTERNAL_ERROR 500
-#define PRINT_CONT_HEADER 1
+#define PRINT_TYPE_LENGTH 1
 #define PRINT_LM 2
 #define PRINT_ALLOW 4
 #define PRINT_CONTENT 8
+#define PRINT_AUTH 16
 
 extern int logfile;
 extern char webSpacePath[50];
@@ -33,7 +36,9 @@ void httpError(int socket, Response *resp, const char *message) {
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content);
     strcpy(resp->type, "text/html");
-    flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
+    int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
+    if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
+    flushResponse(socket, resp, fields);
 }
 
 Response createResponse() {
@@ -64,6 +69,9 @@ void codeMsg(Response *resp) {
         case INTERNAL_ERROR:
             strcpy(resp->result, "Internal Server Error");
             break;
+        case AUTH_REQUIRED:
+            strcpy(resp->result, "Authorization Required");
+            break;
     }
 }
 
@@ -87,27 +95,6 @@ int readContent(char *path, Response *resp) {
     i = read(fd, resp->content, MAX_CONT);
     close(fd);
     return i;
-}
-
-int checkPath(char *path) {
-    char str[strlen(path)];
-    strcpy(str, path);
-    int counter = 0;
-    char *dir = strtok(str, "/");
-    while (dir != NULL) {
-        if (strcmp(dir, "..") == 0) {
-            counter--;
-        }
-        else if ((strcmp(dir, "") == 0) || (strcmp(dir, ".") == 0));
-        else {
-            counter++;
-        }
-        if (counter < 0) {
-            break;
-        }
-        dir = strtok(NULL, "/");
-    }
-    return counter;
 }
 
 void searchDir(char *path, Response *resp) {
@@ -144,7 +131,31 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
-void accessResource(char *path, Response *resp) {
+void accessResource(char *dir, char *res, Response *resp, int depth) {
+
+    // Verifica a existência de arquivo de proteção .htaccess
+    struct stat htaccess_stats;
+    char htaccess[MAX_NAME] = "";
+    strcat(htaccess, dir);
+    strcat(htaccess, "/.htaccess");
+    if (stat(htaccess, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
+        resp->code = AUTH_REQUIRED;
+        return;
+    }
+
+    // Se estiver tentando acessar algo fora do webspace
+    if (depth < 0) {
+        resp->code = FORBIDDEN;
+        return;
+    }
+
+    // Monta o path para o recurso
+    char path[MAX_NAME] = "";
+    char *next;
+    strcat(path, dir);
+    strcat(path, "/");
+    char *this = mystrtok(res, "/", next);
+    strcat(path, this);
 
     struct stat resource_stats;
     if (stat(path, &resource_stats) == -1) {    // Se o recurso não for encontrado
@@ -152,13 +163,10 @@ void accessResource(char *path, Response *resp) {
         return;
     }
 
-    switch (resource_stats.st_mode & S_IFMT)
-    {
-        case S_IFREG :  // Se o recurso for um arquivo regular
-            
-            if ((access(path, R_OK) != 0)) {    // Se não tem permissão de leitura
-                resp->code = FORBIDDEN;
-            }
+    switch (resource_stats.st_mode & S_IFMT) {
+        // Se o recurso for um arquivo regular
+        case S_IFREG :  
+            if ((access(path, R_OK) != 0)) resp->code = FORBIDDEN;  // Se não tem permissão de leitura
             else {
                 // Preenche Content-Type, Content-Length e Last-Modified
                 getType(resp->type, path);
@@ -169,14 +177,15 @@ void accessResource(char *path, Response *resp) {
                 resp->lmdate[strlen(resp->lmdate)-1] = 0;   // Tira quebra de linha do final
             }
             break;
-            
-        case S_IFDIR :  // Se o recurso for um diretório
-            if ((access(path, X_OK) != 0)) {    // Se não tem permissão de varredura
-                resp->code = FORBIDDEN;
+        // Se o recurso for um diretório   
+        case S_IFDIR :  
+            if (next == NULL) { // Se é o final do path
+                if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
+                else searchDir(path, resp);
             }
-            else {
-                searchDir(path, resp);
-            }
+            else if (!strcmp(this, "..")) accessResource(path, next, resp, depth - 1);  // Se for o diretório pai
+            else if (!strcmp(this, ".")) accessResource(path, next, resp, depth);  // Se for o próprio diretório
+            else accessResource(path, next, resp, depth + 1);  // Se for um diretório filho
             break;
     }
 }
@@ -186,7 +195,7 @@ void flushResponse(int fd, Response *resp, int fields) {
     dprintf(fd, "Date: %s\r\n", resp->rdate);
     dprintf(fd, "Server: %s\r\n", resp->server);    
     dprintf(fd, "Connection: %s\r\n", resp->connection);
-    if (fields & PRINT_CONT_HEADER) { 
+    if (fields & PRINT_TYPE_LENGTH) { 
         dprintf(fd, "Content-Type: %s\r\n", resp->type);
         dprintf(fd, "Content-Length: %d\r\n", resp->size);   
     }
@@ -196,6 +205,9 @@ void flushResponse(int fd, Response *resp, int fields) {
     if (fields & PRINT_LM) {
         dprintf(fd, "Last-Modified: %s\r\n", resp->lmdate);  
     }
+    if (fields & PRINT_AUTH) {
+        dprintf(fd, "WWW-Authenticate: %s\r\n", resp->auth);  
+    }
     if (fields & PRINT_CONTENT) {
         dprintf(fd, "\r\n");
         write(fd, resp->content, resp->size);
@@ -203,30 +215,30 @@ void flushResponse(int fd, Response *resp, int fields) {
     dprintf(fd, "\r\n");
 }
 
-void GET(char *path, Response *resp, int socket) {
-    accessResource(path, resp);
+void GET(char *res, Response *resp, int socket) {
+    accessResource(webSpacePath, res, resp, 0);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT | PRINT_LM);
+        flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT | PRINT_LM);
     }
     else {
         httpError(socket, resp, "");
     }
 }
 
-void HEAD(char *path, Response *resp, int socket) {
-    accessResource(path, resp);
+void HEAD(char *res, Response *resp, int socket) {
+    accessResource(webSpacePath, res, resp, 0);
     codeMsg(resp);
     if (resp->code == 200) {
-        flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_LM);
+        flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_LM);
     }
     else {
         httpError(socket, resp, "");
     }
 }
 
-void OPTIONS(char *path, Response *resp, int socket) {
-    accessResource(path, resp);
+void OPTIONS(char *res, Response *resp, int socket) {
+    accessResource(webSpacePath, res, resp, 0);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_ALLOW);
@@ -236,11 +248,10 @@ void OPTIONS(char *path, Response *resp, int socket) {
     }
 }
 
-void TRACE(char *path, Response *resp, int socket) {
+void TRACE(char *res, Response *resp, int socket) {
     resp->code = OK;
-    sleep(10);
     strcpy(resp->type, "message/html");
-    flushResponse(socket, resp, PRINT_CONT_HEADER | PRINT_CONTENT);
+    flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT);
 }
 
 int processRequest(listptr mainList, int socket) {
@@ -263,17 +274,17 @@ int processRequest(listptr mainList, int socket) {
     printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), path);
     
     if (strcmp(method, "GET") == 0) {
-       GET(path, &resp, socket); 
+       GET(resource, &resp, socket); 
     }
     else if (strcmp(method, "HEAD") == 0) {
-        HEAD(path, &resp, socket);
+        HEAD(resource, &resp, socket);
     }
     else if (strcmp(method, "TRACE") == 0) {
         printOriginal(resp.content, mainList);
-        TRACE(path, &resp, socket);
+        TRACE(resource, &resp, socket);
     }
     else if (strcmp(method, "OPTIONS") == 0) {
-        OPTIONS(path, &resp, socket);
+        OPTIONS(resource, &resp, socket);
     }
 
     return resp.code;
