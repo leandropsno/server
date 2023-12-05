@@ -59,7 +59,7 @@ void *threadMain(void *socket) {
         char requestMessage[MAX_CONT];
         int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
         if (msgLen > 0) {
-            printf("Thread %ld leu %d bytes da seguinte requisicao: %s\n", pthread_self(), msgLen, requestMessage); fflush(stdout);              
+            printf("Thread %ld leu %d bytes de requisicao\n", pthread_self(), msgLen); fflush(stdout);              
             CommandNode* mainList = NULL; 
             yy_scan_string(requestMessage);
             int error = yyparse(&mainList, &result, connection.fd);

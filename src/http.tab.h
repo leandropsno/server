@@ -57,9 +57,7 @@ extern int yydebug;
     COMMAND = 258,                 /* COMMAND  */
     ARG = 259,                     /* ARG  */
     HOST_PORT = 260,               /* HOST_PORT  */
-    COLON = 261,                   /* COLON  */
-    NEWLINE = 262,                 /* NEWLINE  */
-    COMMA = 263                    /* COMMA  */
+    NEWLINE = 261                  /* NEWLINE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -68,11 +66,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 13 "http.y"
+#line 16 "http.y"
 
     char word[100];
 
-#line 76 "http.tab.h"
+#line 74 "http.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
