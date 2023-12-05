@@ -1,6 +1,5 @@
 #define MAX_PARAM 64
 #define MAX_CONT 4096
-#include "lists.h"
 
 typedef struct Response {
     int code;

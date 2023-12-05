@@ -261,17 +261,7 @@ int processRequest(listptr mainList, int socket) {
     char *method = list->command;
     char *resource = list->paramList->parameter;
 
-    // Confere se o recurso está fora do webspace
-    if (checkPath(&resource[1]) < 0) {
-        return FORBIDDEN;
-    }
-
-    // Monta o path para o recurso
-    char path[MAX_NAME] = "";
-    strcat(path, webSpacePath);
-    strcat(path, resource);
-
-    printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), path);
+    printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), resource);
     
     if (strcmp(method, "GET") == 0) {
        GET(resource, &resp, socket); 
