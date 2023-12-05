@@ -27,12 +27,14 @@ struct pollfd connection;
 long unsigned int timeout = 4000;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// SIGINT interruption handler.
 void intHandler() {
     pthread_mutex_destroy(&mutex);
     close(connectionSocket);
     exit(0);
 }
 
+// Handler routine for internal errors. 
 void errorHandler(int socket, const char *func, const char *message, pthread_t thread) {
     if (func != NULL) perror(func);
     Response resp = createResponse();
@@ -52,6 +54,7 @@ void errorHandler(int socket, const char *func, const char *message, pthread_t t
     }
 }
 
+// Main thread function. Processes the request (if any) detected in SOCKET.
 void *threadMain(void *socket) {
     int result;
     printf("Thread %ld criada, restam %d\n", pthread_self(), n_threads); fflush(stdout);
@@ -119,8 +122,8 @@ void main(int argc, char **argv) {
     int msgSocket;
 
     // Verifica número de argumentos
-    if ((argc < 5) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
-        printf("Uso: ./servidor <web_space_path> <logfile> <n_threads> <port_number>\n");
+    if ((argc < 4) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
+        printf("Uso: ./servidor <webspace> <N> <port_number>\n");
         exit(1);
     }
 
@@ -128,12 +131,12 @@ void main(int argc, char **argv) {
     strcpy(webSpacePath, argv[1]);
 
     // Abre o arquivo de log (registro)
-    logfile = open(argv[2], O_CREAT | O_APPEND | O_RDWR, 00700);
+    // logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
 
     // Seta o número máximo de threads
-    n_threads = atoi(argv[3]);
+    n_threads = atoi(argv[2]);
     if (n_threads <= 0) {
-        printf("n_threads deve ser maior que 0");
+        printf("N deve ser maior que 0");
         exit(1);
     }
 
@@ -141,8 +144,7 @@ void main(int argc, char **argv) {
     signal(SIGINT, intHandler);
 
     // Realiza a conexão na porta especificada
-    connectionSocket = connectSocket(argv[4]);
-    sleep(60);
+    connectionSocket = connectSocket(argv[3]);
     while (1) {
         // Aguarda conexão no socket
         msgSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
@@ -165,6 +167,4 @@ void main(int argc, char **argv) {
             printf("Servidor sobrecarregado\n");
         }
     }
-    pthread_mutex_destroy(&mutex);
-    close(connectionSocket);
 }
