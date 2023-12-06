@@ -3,7 +3,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "ast.h"
-#define MAX_AUTH 9
 
 const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -96,7 +95,3 @@ char *mystrtok(char *str, char *tok, char delim) {
 	}
     return next;
 }
-
-// str = "/";
-// target = tok = ""
-// next = str + 1 = ""

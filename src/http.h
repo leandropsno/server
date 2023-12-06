@@ -1,3 +1,4 @@
+#include <crypt.h>
 #define MAX_PARAM 64
 #define MAX_CONT 4096
 #define MAX_REQ 2048
@@ -15,6 +16,7 @@
 #define PRINT_CONTENT 8
 #define PRINT_AUTH 16
 #define TABLE_SIZE 31
+#define DEFAULT_SALT "84"
 
 typedef struct Response {
     int code;

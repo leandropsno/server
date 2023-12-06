@@ -13,8 +13,8 @@
 #include <pthread.h>
 #include <crypt.h>
 #include "lists.h"
-#include "http.h"
 #include "ast.h"
+#include "http.h"
 
 const char *fileTable[TABLE_SIZE][2] = {
     {"htm", "text/html"}, {"html", "text/html"}, {"txt", "text/plain"}, {"css", "text/css"}, {"csv", "text/csv"}, {"js", "text/javascript"},
@@ -42,7 +42,7 @@ Response createResponse() {
     gettimeofday(&tv, NULL);
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
     resp.rdate[strlen(resp.rdate)-1] = 0;   // Tira quebra de linha do final
-    strcpy(resp.server, "Servidor HTTP versão 11 de Leandro Ponsano");
+    strcpy(resp.server, "Servidor HTTP versão 12 de Leandro Ponsano");
     strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
     resp.size = 0;
@@ -292,8 +292,12 @@ void extractLogin(listptr mainList, Login *login) {
     auth = searchCommand(mainList, "Authorization");
     if (auth != NULL) { // Se há um campo "Authorization" na requisição
         login->exists = 1;
-        encoded = auth->paramList->parameter + 6; // + 6 para ignorar "Basic "
-        decoded = b64_decode((const char*)encoded);
+        encoded = auth->paramList->parameter;
+        char tok[strlen(encoded)];
+        while (encoded != NULL) {
+            encoded = mystrtok(encoded, tok, ' ');
+        }
+        decoded = b64_decode((const char*)tok);
         temp1 = malloc(strlen(decoded)*sizeof(char));
         temp2 = mystrtok(decoded, temp1, ':');
         strncpy(login->password, temp2, MAX_AUTH);
@@ -302,22 +306,23 @@ void extractLogin(listptr mainList, Login *login) {
         login->user[MAX_AUTH] = 0;      // Trunca usuário para 8 caracteres
         free(decoded);
         free(temp1);
-        char *encrypted = crypt(login->password, "84");
+        char *encrypted = crypt(login->password, DEFAULT_SALT);
         strcpy(login->password, encrypted);
     }
     else login->exists = 0;
 }
 
 int authenticate(Response *resp, Login *login, int *protection) {
-    char htacc_cont[2*MAX_NAME], realm[MAX_NAME], user[MAX_AUTH];
+    char htacc_cont[(2*MAX_NAME)+1], realm[MAX_NAME], user[MAX_AUTH];
     char *htpass_path, *line, *password;
     int len, htpass_fd, match = 0;
     size_t linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
     FILE *htpass_stream;
 
     if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
-        len = read(*protection, htacc_cont, MAX_NAME);
+        len = read(*protection, htacc_cont, (2*MAX_NAME)+1);
         htpass_path = mystrtok(htacc_cont, realm, '\n');
+        close(*protection);
         if (login->exists) {    // Se há credenciais fornecidas
             htpass_fd = open(htpass_path, O_RDONLY);
             htpass_stream = fdopen(htpass_fd, "r");
