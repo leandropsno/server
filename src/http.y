@@ -21,7 +21,7 @@ extern int logfile;
 %parse-param { listptr mainList } { int *result } { int socket }
 %%
 
-request : command_line NEWLINE { printf("vou processar a requisicao\n"); *result = processRequest(mainList, socket); }
+request : command_line NEWLINE { *result = processRequest(mainList, socket); }
         | command_line param_lines NEWLINE { *result = processRequest(mainList, socket); }
         ;
 
@@ -38,21 +38,23 @@ param_line : ARG NEWLINE { splitParamLine(mainList, $1); }
 %%
 
 void splitCommandLine(listptr mainList, char *text) {
-    char *tok = strtok(text, " ");
+    char *saveptr;
+    char *tok = strtok_r(text, " ", &saveptr);
     addCommand(mainList, tok);
-    tok = strtok(NULL, " ");
+    tok = strtok_r(NULL, " ", &saveptr);
     while (tok != NULL) {
         addParam(mainList, tok);
-        tok = strtok(NULL, " ");
+        tok = strtok_r(NULL, " ", &saveptr);
     }
 }
 
 void splitParamLine(listptr mainList, char *text) {
-    char *tok = strtok(text, ": ");
+    char *saveptr;
+    char *tok = strtok_r(text, ": ", &saveptr);
     addCommand(mainList, tok);
-    tok = strtok(NULL, ",");
+    tok = strtok_r(NULL, ",", &saveptr);
     while (tok != NULL) {
         addParam(mainList, tok);
-        tok = strtok(NULL, ",");
+        tok = strtok_r(NULL, ",", &saveptr);
     }
 }

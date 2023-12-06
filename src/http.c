@@ -28,6 +28,14 @@
 #define PRINT_ALLOW 4
 #define PRINT_CONTENT 8
 #define PRINT_AUTH 16
+#define TABLE_SIZE 31
+
+const char *fileTable[TABLE_SIZE][2] = {
+    {"htm", "text/html"}, {"html", "text/html"}, {"txt", "text/plain"}, {"css", "text/css"}, {"csv", "text/csv"}, {"js", "text/javascript"},
+    {"avif", "image/avif"}, {"bmp", "image/bmp"}, {"gif", "image/gif"}, {"jpg", "image/jpeg"},  {"jpeg", "image/jpeg"}, {"png", "image/png"}, {"tif", "image/tiff"}, {"tiff", "image/tiff"}, {"webp", "image/webp"},
+    {"zip", "application/zip"}, {"gzip", "application/gzip"}, {"json", "application/json"},  {"pdf", "application/pdf"}, {"rar", "application/x-rar-compressed"}, {"tar", "application/x-tar"}, {"rtf", "application/rtf"}, {"sh", "application/x-sh"}, {"xhtml", "application/xhtml+xml"}, {"xls", "application/vnd.ms-excel"}, {"xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}, {"xml", "application/xml"},
+    {"mp3", "audio/mpeg"}, {"wav", "audio/wav"}, {"mp4", "video/mp4"}, {"webm", "video/webm"}
+};
 
 extern int logfile;
 extern char webSpacePath[50];
@@ -75,14 +83,28 @@ void codeMsg(Response *resp) {
     }
 }
 
-void getType(char *type, char *filename) {
+void getMediaType(char *type, char *filename) {
+    char extension[5];
     char name[strlen(filename)];
+    int i;
+
+    // Extrai a extensão do nome do arquivo
     strcpy(name, filename);
     char *tok = strtok(name, ".");
     while (tok != NULL) {
-        strcpy(type, tok);
+        strcpy(extension, tok);
         tok = strtok(NULL, ".");
     }
+
+    // Procura pela extensão na tabela de tipos
+    for (i = 0; i < TABLE_SIZE; i++) {
+        if (!strcmp(fileTable[i][0], extension)) {
+            strcpy(type, fileTable[i][1]);
+            return;
+        }
+    }
+    strcpy(type, "application/octet-stream"); // Tipo padrão para arquivos desconhecidos
+
 }
 
 int readContent(char *path, Response *resp) {
@@ -132,7 +154,6 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
-// Verifica a existência de arquivo .htaccess
 int authenticate(char *dir, Response *resp) {
     char htacc_path[MAX_NAME], htacc_cont[MAX_NAME], realm[MAX_NAME];
     char *htass_path;
@@ -186,7 +207,7 @@ void accessResource(char *dir, char *res, Response *resp, int depth) {
             if ((access(path, R_OK) != 0)) resp->code = FORBIDDEN;  // Se não tem permissão de leitura
             else {
                 // Preenche Content-Type, Content-Length e Last-Modified
-                getType(resp->type, path);
+                getMediaType(resp->type, path);
                 len = readContent(path, resp);
                 resp->code = OK;
                 resp->size = len;
@@ -267,7 +288,7 @@ void OPTIONS(char *res, Response *resp, int socket) {
 
 void TRACE(char *res, Response *resp, int socket) {
     resp->code = OK;
-    strcpy(resp->type, "message/html");
+    strcpy(resp->type, "message/http");
     flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT);
 }
 

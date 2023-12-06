@@ -1304,21 +1304,23 @@ yyreturnlab:
 
 
 void splitCommandLine(listptr mainList, char *text) {
-    char *tok = strtok(text, " ");
+    char *saveptr;
+    char *tok = strtok_r(text, " ", &saveptr);
     addCommand(mainList, tok);
-    tok = strtok(NULL, " ");
+    tok = strtok_r(NULL, " ", &saveptr);
     while (tok != NULL) {
         addParam(mainList, tok);
-        tok = strtok(NULL, " ");
+        tok = strtok_r(NULL, " ", &saveptr);
     }
 }
 
 void splitParamLine(listptr mainList, char *text) {
-    char *tok = strtok(text, ": ");
+    char *saveptr;
+    char *tok = strtok_r(text, ": ", &saveptr);
     addCommand(mainList, tok);
-    tok = strtok(NULL, ",");
+    tok = strtok_r(NULL, ",", &saveptr);
     while (tok != NULL) {
         addParam(mainList, tok);
-        tok = strtok(NULL, ",");
+        tok = strtok_r(NULL, ",", &saveptr);
     }
 }

@@ -24,6 +24,12 @@ void httpError(int socket, Response *resp, const char *message);
 // Armazena em BUF o conteúdo de um recurso em PATH.
 int readContent(char *path, Response *resp);
 
+// Verifica a existência de arquivo .htaccess.
+int authenticate(char *dir, Response *resp);
+
+// Stores the type of FILENAME in TYPE.
+void getMediaType(char *type, char *filename);
+
 // Percorre o diretório buscando os arquivos padrão (index.html e welcome.html).
 void searchDir(char *path, Response *resp);
 
