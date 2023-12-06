@@ -71,16 +71,15 @@ void codeMsg(Response *resp) {
 
 void getMediaType(char *type, char *filename) {
     char extension[5];
-    char name[strlen(filename)];
+    char tok[strlen(filename)];
     int i;
 
     // Extrai a extensão do nome do arquivo
-    strcpy(name, filename);
-    char *tok = strtok(name, ".");
-    while (tok != NULL) {
-        strcpy(extension, tok);
-        tok = strtok(NULL, ".");
+    char *next = mystrtok(filename, tok, '.');
+    while (next != NULL) {
+        next = mystrtok(next, tok, '.');
     }
+    strcpy(extension, tok);
 
     // Procura pela extensão na tabela de tipos
     for (i = 0; i < TABLE_SIZE; i++) {
@@ -143,20 +142,21 @@ void searchDir(char *path, Response *resp) {
 void checkProtection(char *dir, int *current) {
     char htacc_path[MAX_NAME];
     struct stat htaccess_stats;
-    int htacc;
+    int htacc, aux;
 
     strcat(htacc_path, dir);
     strcat(htacc_path, "/.htaccess");
     if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
         htacc = open(htacc_path, O_RDONLY);
-        close(*current);
+        aux = *current;
         *current = htacc;
+        if (aux > 0) close(aux);
     }
 }
 
 void accessResource(char *dir, char *res, Response *resp, int depth, Login *login, int *protection) {
     struct stat resource_stats;;
-    char path[MAX_NAME], target[MAX_NAME];
+    char path[MAX_NAME] = "", target[MAX_NAME] = "";
     char *next;
     int len, auth;
 
@@ -302,7 +302,8 @@ void extractLogin(listptr mainList, Login *login) {
         login->user[MAX_AUTH] = 0;      // Trunca usuário para 8 caracteres
         free(decoded);
         free(temp1);
-
+        char *encrypted = crypt(login->password, "84");
+        strcpy(login->password, encrypted);
     }
     else login->exists = 0;
 }
@@ -310,7 +311,8 @@ void extractLogin(listptr mainList, Login *login) {
 int authenticate(Response *resp, Login *login, int *protection) {
     char htacc_cont[2*MAX_NAME], realm[MAX_NAME], user[MAX_AUTH];
     char *htpass_path, *line, *password;
-    int len, htpass_fd, match = 0, linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
+    int len, htpass_fd, match = 0;
+    size_t linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
     FILE *htpass_stream;
 
     if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
@@ -318,17 +320,18 @@ int authenticate(Response *resp, Login *login, int *protection) {
         htpass_path = mystrtok(htacc_cont, realm, '\n');
         if (login->exists) {    // Se há credenciais fornecidas
             htpass_fd = open(htpass_path, O_RDONLY);
-            htpass_stream = fdopen(htpass_fd, "w");
+            htpass_stream = fdopen(htpass_fd, "r");
             line = malloc(linesize*sizeof(char));
-            while ((!match) && ((len = getline(&line, linesize, htpass_stream)) > 0)) {
-                line[len-1] = 0;
+            while ((!match) && len > 0) {
+                len = getline(&line, &linesize, htpass_stream);
+                if (line[len-1] == '\n') line[len-1] = 0;
                 password = mystrtok(line, user, ':');
                 if (!strcmp(user, login->user)) match = 1;
             }
-            free(line);
             close(htpass_fd);
-            if (match && (!strcmp(password, login->password))) return 1; // Se o usuário consta e as senhas coincidem
-            else return 0;
+            if (match) match = (!strcmp(password, login->password)); // Se o usuário consta e as senhas coincidem
+            free(line);
+            return match;
         }
         else {  // Pede por credenciais
             strcpy(resp->auth, "Basic realm=");
@@ -341,14 +344,14 @@ int authenticate(Response *resp, Login *login, int *protection) {
 
 int processRequest(listptr mainList, int socket) {
     Response resp;
-    CommandNode *list, *auth;
+    CommandNode *list;
     Login login;
-    char *method, *resource, user[MAX_AUTH], password[MAX_AUTH];
+    char *method, *resource;
     
     resp = createResponse();
     list = *mainList;
-    char *method = list->command;
-    char *resource = list->paramList->parameter;
+    method = list->command;
+    resource = list->paramList->parameter;
 
     printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), resource);
 

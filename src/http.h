@@ -3,7 +3,7 @@
 #define MAX_REQ 2048
 #define MAX_NAME 256
 #define MAX_CMD 8
-#define MAX_AUTH 9
+#define MAX_AUTH 8
 #define NOT_FOUND 404
 #define FORBIDDEN 403
 #define AUTH_REQUIRED 401
@@ -32,8 +32,8 @@ typedef struct Response {
 
 typedef struct Login {
     int exists;
-    char user[MAX_AUTH];
-    char password[MAX_AUTH];
+    char user[MAX_AUTH+1];
+    char password[CRYPT_OUTPUT_SIZE];
 } Login;
 
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.

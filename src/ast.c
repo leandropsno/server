@@ -1,9 +1,8 @@
-#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <crypt.h>
+#include "ast.h"
 #define MAX_AUTH 9
 
 const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -91,42 +90,13 @@ char *mystrtok(char *str, char *tok, char delim) {
 	while (str[i] == delim) {
 		next++;
 		i++;
+		if (next[0] == 0) {
+			return NULL;
+		}
 	}
     return next;
 }
 
-int ___main() {
-	char str[] = "dir4/dir41/../index.html";
-	char tok[strlen(str)];
-	char *next;
-	next = mystrtok(str, tok, '/');
-	next = mystrtok(next, tok, '/');
-	next = mystrtok(next, tok, '/');
-	next = mystrtok(next, tok, '/');
-}
-
-int __main(int argc, char **argv){
-	if (argc < 3) exit(0);
-	printf("\n( Salt = %s ) + ( Password = %s ) ==> ( crypt = %s )\n\n",
-				argv[2], argv[1], crypt(argv[1], argv[2]));
-	return(0);
-}
-
-int main(int argc, char **argv)
-{
-	char *method, *resource, encoded[] = "dWR0cWNzc29uZG9kOjEyMzQ1Njc4OUFCQ0RFRg==", *decoded, user[MAX_AUTH], password[MAX_AUTH];
-    
-	decoded = b64_decode((const char*)encoded);
-	char *temp1 = malloc(strlen(decoded)*sizeof(char));
-	char *temp2 = mystrtok(decoded, temp1, ':');
-	strncpy(password, temp2, MAX_AUTH);
-	strncpy(user, temp1, MAX_AUTH);
-	password[MAX_AUTH] = 0;
-	user[MAX_AUTH] = 0;
-	free(decoded);
-	free(temp1);
-
-	int a = CR
-
-	return 0;
-}
+// str = "/";
+// target = tok = ""
+// next = str + 1 = ""
