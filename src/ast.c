@@ -126,5 +126,7 @@ int main(int argc, char **argv)
 	free(decoded);
 	free(temp1);
 
+	int a = CR
+
 	return 0;
 }

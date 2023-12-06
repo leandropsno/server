@@ -46,7 +46,7 @@ void httpError(int socket, Response *resp, const char *message);
 int readContent(char *path, Response *resp);
 
 // Verifica a existência de arquivo .htaccess.
-int checkProtection(char *dir, Response *resp);
+void checkProtection(char *dir, int *current);
 
 // Stores the type of FILENAME in TYPE.
 void getMediaType(char *type, char *filename);
@@ -55,13 +55,19 @@ void getMediaType(char *type, char *filename);
 void searchDir(char *path, Response *resp);
 
 // Acessa as estatísticas do recurso RES no diretório DIR, preenche parâmetros e conteúdo da resposta.
-void accessResource(char *dir, char *res, Response *resp, int depth, Login *login);
+void accessResource(char *dir, char *res, Response *resp, int depth, Login *login, int *protection);
 
 // Guarda em RESULT a mensagem correspondente a CODE.
 void codeMsg(Response *resp);
 
 // Imprime os campos de RESP especificados em FIELDS no descritor FD.
 void flushResponse(int fd, Response *resp, int fields);
+
+/* Se houver descritor de um arquivo de proteção aberto em PROTECTION, realiza a autenticação usando as credenciais em LOGIN.
+Retorna 0 se a autenticação falhou (credencial incorreta ou inexistente) e 1 se foi bem sucedida (credencial correta ou proteção inexistente).
+A manipulação de RESP varia para cada uma das situações mencionadas.
+*/
+int authenticate(Response *resp, Login *login, int *protection);
 
 // Procura por um campo "Authorization" em MAINLIST, e se houver, extrai as informações e armazena em LOGIN.
 void extractLogin(listptr mainList, Login *login);

@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <crypt.h>
 #include "lists.h"
 #include "http.h"
 #include "ast.h"
@@ -139,34 +140,28 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
-int checkProtection(char *dir, Response *resp) {
-    char htacc_path[MAX_NAME], htacc_cont[MAX_NAME], realm[MAX_NAME];
-    char *htass_path;
+void checkProtection(char *dir, int *current) {
+    char htacc_path[MAX_NAME];
     struct stat htaccess_stats;
-    int len, htacc;
+    int htacc;
 
     strcat(htacc_path, dir);
     strcat(htacc_path, "/.htaccess");
     if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
-        resp->code = AUTH_REQUIRED;
-        strcpy(resp->auth, "Basic realm=");
         htacc = open(htacc_path, O_RDONLY);
-        len = read(htacc, htacc_cont, MAX_NAME);
-        htass_path = mystrtok(htacc_cont, realm, '\n');
-        strcat(resp->auth, realm);
-        return 1;
+        close(*current);
+        *current = htacc;
     }
-    return 0;
 }
 
-void accessResource(char *dir, char *res, Response *resp, int depth, Login *login) {
+void accessResource(char *dir, char *res, Response *resp, int depth, Login *login, int *protection) {
     struct stat resource_stats;;
     char path[MAX_NAME], target[MAX_NAME];
     char *next;
     int len, auth;
 
     // Verifica a existência de arquivo de proteção .htaccess
-    if ((auth = checkProtection(dir, resp))) return;
+    checkProtection(dir, protection);
 
     // Se estiver tentando acessar algo fora do webspace
     if (depth < 0) {
@@ -189,6 +184,11 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
     switch (resource_stats.st_mode & S_IFMT) {
         // Se o recurso for um arquivo regular
         case S_IFREG:
+            auth = authenticate(resp, login, protection);
+            if (!auth) {
+                resp->code = AUTH_REQUIRED;
+                return;
+            }
             if ((access(path, R_OK) != 0)) resp->code = FORBIDDEN;  // Se não tem permissão de leitura
             else {
                 // Preenche Content-Type, Content-Length e Last-Modified
@@ -203,12 +203,17 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
         // Se o recurso for um diretório   
         case S_IFDIR:
             if (next == NULL) { // Se é o final do path
+                auth = authenticate(resp, login, protection);
+                if (!auth) {
+                    resp->code = AUTH_REQUIRED;
+                    return;
+                }
                 if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
                 else searchDir(path, resp);
             }
-            else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1, login);  // Se for o diretório pai
-            else if (!strcmp(target, ".")) accessResource(path, next, resp, depth, login);  // Se for o próprio diretório
-            else accessResource(path, next, resp, depth + 1, login);  // Se for um diretório filho
+            else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1, login, protection);  // Se for o diretório pai
+            else if (!strcmp(target, ".")) accessResource(path, next, resp, depth, login, protection);  // Se for o próprio diretório
+            else accessResource(path, next, resp, depth + 1, login, protection);  // Se for um diretório filho
             break;
     }
 }
@@ -239,7 +244,8 @@ void flushResponse(int fd, Response *resp, int fields) {
 }
 
 void GET(char *res, Response *resp, int socket, Login *login) {
-    accessResource(webSpacePath, res, resp, 0, login);
+    int protection = -1;
+    accessResource(webSpacePath, res, resp, 0, login, &protection);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT | PRINT_LM);
@@ -250,7 +256,8 @@ void GET(char *res, Response *resp, int socket, Login *login) {
 }
 
 void HEAD(char *res, Response *resp, int socket, Login *login) {
-    accessResource(webSpacePath, res, resp, 0, login);
+    int protection = -1;
+    accessResource(webSpacePath, res, resp, 0, login, &protection);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_LM);
@@ -261,7 +268,8 @@ void HEAD(char *res, Response *resp, int socket, Login *login) {
 }
 
 void OPTIONS(char *res, Response *resp, int socket, Login *login) {
-    accessResource(webSpacePath, res, resp, 0, login);
+    int protection = -1;
+    accessResource(webSpacePath, res, resp, 0, login, &protection);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_ALLOW);
@@ -282,23 +290,54 @@ void extractLogin(listptr mainList, Login *login) {
     char *encoded, *decoded, *temp1, *temp2;
     
     auth = searchCommand(mainList, "Authorization");
-    if (auth != NULL) {
+    if (auth != NULL) { // Se há um campo "Authorization" na requisição
         login->exists = 1;
-        encoded = auth->paramList->parameter + 6; // + 6 to ignore "Basic "
+        encoded = auth->paramList->parameter + 6; // + 6 para ignorar "Basic "
         decoded = b64_decode((const char*)encoded);
         temp1 = malloc(strlen(decoded)*sizeof(char));
         temp2 = mystrtok(decoded, temp1, ':');
         strncpy(login->password, temp2, MAX_AUTH);
         strncpy(login->user, temp1, MAX_AUTH);
-        login->password[MAX_AUTH] = 0;
-        login->user[MAX_AUTH] = 0;
+        login->password[MAX_AUTH] = 0;  // Trunca senha para 8 caracteres
+        login->user[MAX_AUTH] = 0;      // Trunca usuário para 8 caracteres
         free(decoded);
         free(temp1);
+
     }
     else login->exists = 0;
 }
 
-void authenticate(Login login);
+int authenticate(Response *resp, Login *login, int *protection) {
+    char htacc_cont[2*MAX_NAME], realm[MAX_NAME], user[MAX_AUTH];
+    char *htpass_path, *line, *password;
+    int len, htpass_fd, match = 0, linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
+    FILE *htpass_stream;
+
+    if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
+        len = read(*protection, htacc_cont, MAX_NAME);
+        htpass_path = mystrtok(htacc_cont, realm, '\n');
+        if (login->exists) {    // Se há credenciais fornecidas
+            htpass_fd = open(htpass_path, O_RDONLY);
+            htpass_stream = fdopen(htpass_fd, "w");
+            line = malloc(linesize*sizeof(char));
+            while ((!match) && ((len = getline(&line, linesize, htpass_stream)) > 0)) {
+                line[len-1] = 0;
+                password = mystrtok(line, user, ':');
+                if (!strcmp(user, login->user)) match = 1;
+            }
+            free(line);
+            close(htpass_fd);
+            if (match && (!strcmp(password, login->password))) return 1; // Se o usuário consta e as senhas coincidem
+            else return 0;
+        }
+        else {  // Pede por credenciais
+            strcpy(resp->auth, "Basic realm=");
+            strcat(resp->auth, realm);
+            return 0;
+        }
+    }
+    return 1;
+}
 
 int processRequest(listptr mainList, int socket) {
     Response resp;
