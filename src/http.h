@@ -1,5 +1,20 @@
 #define MAX_PARAM 64
 #define MAX_CONT 4096
+#define MAX_REQ 2048
+#define MAX_NAME 256
+#define MAX_CMD 8
+#define MAX_AUTH 9
+#define NOT_FOUND 404
+#define FORBIDDEN 403
+#define AUTH_REQUIRED 401
+#define OK 200
+#define INTERNAL_ERROR 500
+#define PRINT_TYPE_LENGTH 1
+#define PRINT_LM 2
+#define PRINT_ALLOW 4
+#define PRINT_CONTENT 8
+#define PRINT_AUTH 16
+#define TABLE_SIZE 31
 
 typedef struct Response {
     int code;
@@ -15,6 +30,12 @@ typedef struct Response {
     char auth[MAX_PARAM];
 } Response;
 
+typedef struct Login {
+    int exists;
+    char user[MAX_AUTH];
+    char password[MAX_AUTH];
+} Login;
+
 // Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
 Response createResponse();
 
@@ -25,7 +46,7 @@ void httpError(int socket, Response *resp, const char *message);
 int readContent(char *path, Response *resp);
 
 // Verifica a existência de arquivo .htaccess.
-int authenticate(char *dir, Response *resp);
+int checkProtection(char *dir, Response *resp);
 
 // Stores the type of FILENAME in TYPE.
 void getMediaType(char *type, char *filename);
@@ -34,7 +55,7 @@ void getMediaType(char *type, char *filename);
 void searchDir(char *path, Response *resp);
 
 // Acessa as estatísticas do recurso RES no diretório DIR, preenche parâmetros e conteúdo da resposta.
-void accessResource(char *dir, char *res, Response *resp, int depth);
+void accessResource(char *dir, char *res, Response *resp, int depth, Login *login);
 
 // Guarda em RESULT a mensagem correspondente a CODE.
 void codeMsg(Response *resp);
@@ -42,11 +63,17 @@ void codeMsg(Response *resp);
 // Imprime os campos de RESP especificados em FIELDS no descritor FD.
 void flushResponse(int fd, Response *resp, int fields);
 
+// Procura por um campo "Authorization" em MAINLIST, e se houver, extrai as informações e armazena em LOGIN.
+void extractLogin(listptr mainList, Login *login);
+
 // Monta a resposta referente a uma requisição do tipo GET.
-void GET(char *path, Response *resp, int socket);
+void GET(char *path, Response *resp, int socket, Login *login);
+
+// Monta a resposta referente a uma requisição do tipo HEAD.
+void HEAD(char *res, Response *resp, int socket, Login *login);
 
 // Monta a resposta referente a uma requisição do tipo OPTIONS.
-void OPTIONS(char *path, Response *resp, int socket);
+void OPTIONS(char *path, Response *resp, int socket, Login *login);
 
 // Monta a resposta referente a uma requisição do tipo TRACE.
 void TRACE(char *path, Response *resp, int socket);

@@ -29,6 +29,9 @@ void printOriginal(char *buf, listptr list);
 // Imprime uma lista de comandos.
 void printCommandList(listptr list);
 
+// Procura por COMANDO e retorna o primeiro nó encontrado.
+CommandNode *searchCommand(listptr list, char *command);
+
 // Libera o espaço alocado por uma lista de parametros.
 void freeParamList(ParamNode** ini);
 

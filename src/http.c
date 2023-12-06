@@ -15,21 +15,6 @@
 #include "http.h"
 #include "ast.h"
 
-#define MAX_REQ 2048
-#define MAX_NAME 256
-#define MAX_CMD 8
-#define NOT_FOUND 404
-#define FORBIDDEN 403
-#define AUTH_REQUIRED 401
-#define OK 200
-#define INTERNAL_ERROR 500
-#define PRINT_TYPE_LENGTH 1
-#define PRINT_LM 2
-#define PRINT_ALLOW 4
-#define PRINT_CONTENT 8
-#define PRINT_AUTH 16
-#define TABLE_SIZE 31
-
 const char *fileTable[TABLE_SIZE][2] = {
     {"htm", "text/html"}, {"html", "text/html"}, {"txt", "text/plain"}, {"css", "text/css"}, {"csv", "text/csv"}, {"js", "text/javascript"},
     {"avif", "image/avif"}, {"bmp", "image/bmp"}, {"gif", "image/gif"}, {"jpg", "image/jpeg"},  {"jpeg", "image/jpeg"}, {"png", "image/png"}, {"tif", "image/tiff"}, {"tiff", "image/tiff"}, {"webp", "image/webp"},
@@ -154,7 +139,7 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
-int authenticate(char *dir, Response *resp) {
+int checkProtection(char *dir, Response *resp) {
     char htacc_path[MAX_NAME], htacc_cont[MAX_NAME], realm[MAX_NAME];
     char *htass_path;
     struct stat htaccess_stats;
@@ -174,14 +159,14 @@ int authenticate(char *dir, Response *resp) {
     return 0;
 }
 
-void accessResource(char *dir, char *res, Response *resp, int depth) {
+void accessResource(char *dir, char *res, Response *resp, int depth, Login *login) {
     struct stat resource_stats;;
     char path[MAX_NAME], target[MAX_NAME];
     char *next;
     int len, auth;
 
     // Verifica a existência de arquivo de proteção .htaccess
-    if ((auth = authenticate(dir, resp))) return;
+    if ((auth = checkProtection(dir, resp))) return;
 
     // Se estiver tentando acessar algo fora do webspace
     if (depth < 0) {
@@ -221,9 +206,9 @@ void accessResource(char *dir, char *res, Response *resp, int depth) {
                 if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
                 else searchDir(path, resp);
             }
-            else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1);  // Se for o diretório pai
-            else if (!strcmp(target, ".")) accessResource(path, next, resp, depth);  // Se for o próprio diretório
-            else accessResource(path, next, resp, depth + 1);  // Se for um diretório filho
+            else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1, login);  // Se for o diretório pai
+            else if (!strcmp(target, ".")) accessResource(path, next, resp, depth, login);  // Se for o próprio diretório
+            else accessResource(path, next, resp, depth + 1, login);  // Se for um diretório filho
             break;
     }
 }
@@ -253,8 +238,8 @@ void flushResponse(int fd, Response *resp, int fields) {
     dprintf(fd, "\r\n");
 }
 
-void GET(char *res, Response *resp, int socket) {
-    accessResource(webSpacePath, res, resp, 0);
+void GET(char *res, Response *resp, int socket, Login *login) {
+    accessResource(webSpacePath, res, resp, 0, login);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT | PRINT_LM);
@@ -264,8 +249,8 @@ void GET(char *res, Response *resp, int socket) {
     }
 }
 
-void HEAD(char *res, Response *resp, int socket) {
-    accessResource(webSpacePath, res, resp, 0);
+void HEAD(char *res, Response *resp, int socket, Login *login) {
+    accessResource(webSpacePath, res, resp, 0, login);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_LM);
@@ -275,8 +260,8 @@ void HEAD(char *res, Response *resp, int socket) {
     }
 }
 
-void OPTIONS(char *res, Response *resp, int socket) {
-    accessResource(webSpacePath, res, resp, 0);
+void OPTIONS(char *res, Response *resp, int socket, Login *login) {
+    accessResource(webSpacePath, res, resp, 0, login);
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_ALLOW);
@@ -292,27 +277,56 @@ void TRACE(char *res, Response *resp, int socket) {
     flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT);
 }
 
-int processRequest(listptr mainList, int socket) {
-    Response resp = createResponse();
+void extractLogin(listptr mainList, Login *login) {
+    CommandNode *auth;
+    char *encoded, *decoded, *temp1, *temp2;
     
-    CommandNode *list = *mainList;
+    auth = searchCommand(mainList, "Authorization");
+    if (auth != NULL) {
+        login->exists = 1;
+        encoded = auth->paramList->parameter + 6; // + 6 to ignore "Basic "
+        decoded = b64_decode((const char*)encoded);
+        temp1 = malloc(strlen(decoded)*sizeof(char));
+        temp2 = mystrtok(decoded, temp1, ':');
+        strncpy(login->password, temp2, MAX_AUTH);
+        strncpy(login->user, temp1, MAX_AUTH);
+        login->password[MAX_AUTH] = 0;
+        login->user[MAX_AUTH] = 0;
+        free(decoded);
+        free(temp1);
+    }
+    else login->exists = 0;
+}
+
+void authenticate(Login login);
+
+int processRequest(listptr mainList, int socket) {
+    Response resp;
+    CommandNode *list, *auth;
+    Login login;
+    char *method, *resource, user[MAX_AUTH], password[MAX_AUTH];
+    
+    resp = createResponse();
+    list = *mainList;
     char *method = list->command;
     char *resource = list->paramList->parameter;
 
     printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), resource);
-    
+
+    extractLogin(mainList, &login);
+
     if (strcmp(method, "GET") == 0) {
-       GET(resource, &resp, socket); 
+       GET(resource, &resp, socket, &login); 
     }
     else if (strcmp(method, "HEAD") == 0) {
-        HEAD(resource, &resp, socket);
+        HEAD(resource, &resp, socket, &login);
     }
     else if (strcmp(method, "TRACE") == 0) {
         printOriginal(resp.content, mainList);
         TRACE(resource, &resp, socket);
     }
     else if (strcmp(method, "OPTIONS") == 0) {
-        OPTIONS(resource, &resp, socket);
+        OPTIONS(resource, &resp, socket, &login);
     }
 
     return resp.code;

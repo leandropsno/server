@@ -92,6 +92,15 @@ void printCommandList(listptr list) {
     printf("---------------------------------------------------------\n\n");
 }
 
+CommandNode *searchCommand(listptr list, char *command) {
+    CommandNode *current = *list;
+    while (strcmp(current->command, command)) {
+        current = current->next;
+        if (current == NULL) break;
+    }
+    return current;
+}
+
 void freeParamList(ParamNode** ini) {
     ParamNode *current = *ini;
     ParamNode *next;

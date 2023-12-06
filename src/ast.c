@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <crypt.h>
+#define MAX_AUTH 9
 
 const char b64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -50,40 +51,29 @@ size_t b64_decoded_size(const char *in)
 	return ret;
 }
 
-int b64_decode(const char *in, unsigned char *out, size_t outlen)
+char *b64_decode(const char *in)
 {
-	size_t len;
-	size_t i;
-	size_t j;
-	int    v;
-
-	if (in == NULL || out == NULL)
-		return 0;
+	size_t len, outlen, i, j;
+	int v;
+	unsigned char *out;
 
 	len = strlen(in);
-	if (outlen < b64_decoded_size(in) || len % 4 != 0)
-		return 0;
-
-	for (i=0; i<len; i++) {
-		if (!b64_isvalidchar(in[i])) {
-			return 0;
-		}
-	}
+	outlen = b64_decoded_size(in);
+	out = malloc((int)outlen * sizeof(unsigned char));
 
 	for (i=0, j=0; i<len; i+=4, j+=3) {
 		v = b64invs[in[i]-43];
 		v = (v << 6) | b64invs[in[i+1]-43];
 		v = in[i+2]=='=' ? v << 6 : (v << 6) | b64invs[in[i+2]-43];
 		v = in[i+3]=='=' ? v << 6 : (v << 6) | b64invs[in[i+3]-43];
-
 		out[j] = (v >> 16) & 0xFF;
 		if (in[i+2] != '=')
 			out[j+1] = (v >> 8) & 0xFF;
 		if (in[i+3] != '=')
 			out[j+2] = v & 0xFF;
 	}
-
-	return 1;
+	out[outlen] = '\0';
+	return (char *)out;
 }
 
 char *mystrtok(char *str, char *tok, char delim) {
@@ -122,26 +112,19 @@ int __main(int argc, char **argv){
 	return(0);
 }
 
-int _main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	const char *enc = argv[1];
-	char       *out;
-	size_t      out_len;
-
-	printf("encoded:    '%s'\n", enc);
-
-	/* +1 for the NULL terminator. */
-	out_len = b64_decoded_size(enc)+1;
-	out = malloc(out_len);
-
-	if (!b64_decode(enc, (unsigned char *)out, out_len)) {
-		printf("Decode Failure\n");
-		return 1;
-	}
-	out[out_len] = '\0';
-
-	printf("dec:     '%s'\n", out);
-	free(out);
+	char *method, *resource, encoded[] = "dWR0cWNzc29uZG9kOjEyMzQ1Njc4OUFCQ0RFRg==", *decoded, user[MAX_AUTH], password[MAX_AUTH];
+    
+	decoded = b64_decode((const char*)encoded);
+	char *temp1 = malloc(strlen(decoded)*sizeof(char));
+	char *temp2 = mystrtok(decoded, temp1, ':');
+	strncpy(password, temp2, MAX_AUTH);
+	strncpy(user, temp1, MAX_AUTH);
+	password[MAX_AUTH] = 0;
+	user[MAX_AUTH] = 0;
+	free(decoded);
+	free(temp1);
 
 	return 0;
 }
