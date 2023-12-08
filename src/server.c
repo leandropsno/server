@@ -23,12 +23,11 @@
 char webSpacePath[50];
 int connectionSocket, logfile;
 int n_threads;
-struct pollfd connection;
 long unsigned int timeout = 1000;
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 
-// SIGINT interruption handler.
+// Tratador de Interrupção
 void intHandler() {
     printf("encerrando.\n");
     pthread_mutex_destroy(&mutex1);
@@ -37,64 +36,59 @@ void intHandler() {
     exit(0);
 }
 
-// Handler routine for internal errors. 
+// Tratador de erros internos.
 void errorHandler(int socket, const char *func, const char *message, pthread_t thread) {
     if (func != NULL) perror(func);
     Response resp = createResponse();
     resp.code = INTERNAL_ERROR;
     codeMsg(&resp);
     httpError(socket, &resp, message);
+    close(socket);
     if (thread != 0) {
-        printf("Thread %ld processou o request com resultado %d\n", thread, resp.code); fflush(stdout);
         pthread_mutex_lock(&mutex1);
         n_threads++;
-        printf("Thread %ld terminada, restam %d\n", thread, n_threads); fflush(stdout);     
         pthread_mutex_unlock(&mutex1);
         pthread_exit(0);
     }
-    else {
-        printf("Thread mãe processou o request com resultado %d\n", resp.code); fflush(stdout);
-    }
 }
 
-// Main thread function. Processes the request (if any) detected in SOCKET.
+// Função principal das threads. Processa a requisição (se houver) em SOCKET.
 void *threadMain(void *socket) {
-    int result;
-    printf("Thread %ld criada, restam %d\n", pthread_self(), n_threads); fflush(stdout);
+    int result, msgLen, error;
+    struct pollfd connection;
+    char requestMessage[MAX_CONT];
+
     connection.events = POLLIN;
     connection.fd = (intptr_t)socket;
     int n = poll(&connection, 1, timeout);
+
     if ((n > 0) && (connection.revents == POLLIN)) {
-        char requestMessage[MAX_CONT];
-        int msgLen = read(connection.fd, requestMessage, sizeof(requestMessage));
+        msgLen = read(connection.fd, requestMessage, MAX_CONT);
         if (msgLen > 0) {
-            printf("Thread %ld leu %d bytes de requisicao\n", pthread_self(), msgLen); fflush(stdout);              
-            CommandNode* mainList = NULL; 
+            requestMessage[msgLen] = 0;         
+            CommandNode* mainList = NULL;
             pthread_mutex_lock(&mutex2);
+            write(logfile, "----- Novo Par Requisição/Resposta -----\n", 42);
             yy_scan_string(requestMessage);
-            int error = yyparse(&mainList, &result, connection.fd);
+            error = yyparse(&mainList, &result, connection.fd);
+            write(logfile, "----------------------------------------\n\n", 43);
             pthread_mutex_unlock(&mutex2);
             mainList = NULL;
             cleanupList(&mainList);
             if (error == 1) {
-                printf("yyparse() error: bad input\n");
                 errorHandler(connection.fd, NULL, "", pthread_self());
             }
             else if (error == 2) {
-                printf("yyparse() error: memory exhaustion\n");
-                errorHandler(connection.fd, NULL, "", pthread_self());
+                errorHandler(connection.fd, "Error in yyparse()", "", pthread_self());
             }
-            printf("Thread %ld processou o request com resultado %d\n", pthread_self(), result); fflush(stdout);
         }
     }
-    else if (n == 0)  {
-        printf("Thread %ld não recebeu nenhuma requisição em %ld segundos\n", pthread_self(), timeout); fflush(stdout);
+    else if (n < 0) {
+        errorHandler(connection.fd, "Error in poll()", "", (pthread_t)0);
     }
-    else if (n < 0) errorHandler(connection.fd, "Error in poll()", "", (pthread_t)0);
     pthread_mutex_lock(&mutex1);
-    shutdown(connection.fd, SHUT_RD);
     n_threads++;
-    printf("Thread %ld terminada, restam %d\n", pthread_self(), n_threads); fflush(stdout);
+    close(connection.fd);
     pthread_mutex_unlock(&mutex1);
     pthread_exit(0);
 }
@@ -126,15 +120,15 @@ void main(int argc, char **argv) {
 
     // Verifica número de argumentos
     if ((argc < 4) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
-        printf("Uso: ./servidor <webspace> <N> <port_number>\n");
+        printf("Uso: ./servidor <web_space> <N> <port_number> <log_file>\n");
         exit(1);
     }
+    
+    // Define o tratador de interrupção
+    signal(SIGINT, intHandler);
 
     // Seta o caminho do webspace
     strcpy(webSpacePath, argv[1]);
-
-    // Abre o arquivo de log (registro)
-    // logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
 
     // Seta o número máximo de threads
     n_threads = atoi(argv[2]);
@@ -142,19 +136,18 @@ void main(int argc, char **argv) {
         printf("N deve ser maior que 0");
         exit(1);
     }
-
-    // Define o tratador de interrupção
-    signal(SIGINT, intHandler);
-
+    
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[3]);
+    // sleep(30);
+
+    // Abre o arquivo de log (registro)
+    logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
     
     while (1) {
         // Aguarda conexão no socket
         msgSocket = accept(connectionSocket, (struct sockaddr *)&cliente, &nameLen);
         if (msgSocket < 0 && errno == EINTR) continue;
-
-        printf("Nova conexão recebida\n");
 
         // Cria thread, se houver alguma disponível.
         pthread_mutex_lock(&mutex1);
@@ -167,8 +160,9 @@ void main(int argc, char **argv) {
             }
         }
         else {
+            pthread_mutex_unlock(&mutex1);
             errorHandler(msgSocket, NULL, "Servidor sobrecarregado. Tente novamente mais tarde.", (pthread_t)0);
-            printf("Servidor sobrecarregado\n");
         }
+        
     }
 }

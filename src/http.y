@@ -25,7 +25,9 @@ request : command_line NEWLINE { *result = processRequest(mainList, socket); }
         | command_line param_lines NEWLINE { *result = processRequest(mainList, socket); }
         ;
 
-command_line: COMMAND NEWLINE {  splitCommandLine(mainList, $1); } 
+
+command_line: COMMAND NEWLINE {  splitCommandLine(mainList, $1); }
+            ;
 
 param_lines : param_lines param_line 
             | param_line

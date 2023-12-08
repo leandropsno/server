@@ -508,7 +508,7 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    24,    24,    25,    28,    30,    31,    34,    35
+       0,    24,    24,    25,    29,    32,    33,    36,    37
 };
 #endif
 
@@ -1089,19 +1089,19 @@ yyreduce:
     break;
 
   case 4: /* command_line: COMMAND NEWLINE  */
-#line 28 "http.y"
+#line 29 "http.y"
                               {  splitCommandLine(mainList, (yyvsp[-1].word)); }
 #line 1095 "http.tab.c"
     break;
 
   case 7: /* param_line: ARG NEWLINE  */
-#line 34 "http.y"
+#line 36 "http.y"
                          { splitParamLine(mainList, (yyvsp[-1].word)); }
 #line 1101 "http.tab.c"
     break;
 
   case 8: /* param_line: HOST_PORT NEWLINE  */
-#line 35 "http.y"
+#line 37 "http.y"
                                { splitParamLine(mainList, (yyvsp[-1].word)); }
 #line 1107 "http.tab.c"
     break;
@@ -1300,7 +1300,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 38 "http.y"
+#line 40 "http.y"
 
 
 void splitCommandLine(listptr mainList, char *text) {

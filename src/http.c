@@ -26,15 +26,6 @@ const char *fileTable[TABLE_SIZE][2] = {
 extern int logfile;
 extern char webSpacePath[50];
 
-void httpError(int socket, Response *resp, const char *message) {
-    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
-    resp->size = strlen(resp->content);
-    strcpy(resp->type, "text/html");
-    int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
-    if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
-    flushResponse(socket, resp, fields);
-}
-
 Response createResponse() {
     Response resp;
     struct timeval tv;
@@ -42,11 +33,23 @@ Response createResponse() {
     gettimeofday(&tv, NULL);
     strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
     resp.rdate[strlen(resp.rdate)-1] = 0;   // Tira quebra de linha do final
-    strcpy(resp.server, "Servidor HTTP versão 12 de Leandro Ponsano");
+    strcpy(resp.server, "Servidor HTTP versão 13 de Leandro Ponsano");
     strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
     resp.size = 0;
     return resp;
+}
+
+void httpError(int socket, Response *resp, const char *message) {
+    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
+    resp->size = strlen(resp->content);
+    strcpy(resp->type, "text/html");
+    int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
+    if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
+    flushResponse(socket, resp, fields);
+    fields = PRINT_TYPE_LENGTH;
+    if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
+    flushResponse(logfile, resp, fields);
 }
 
 void codeMsg(Response *resp) {
@@ -139,21 +142,6 @@ void searchDir(char *path, Response *resp) {
     }
 }
 
-void checkProtection(char *dir, int *current) {
-    char htacc_path[MAX_NAME];
-    struct stat htaccess_stats;
-    int htacc, aux;
-
-    strcat(htacc_path, dir);
-    strcat(htacc_path, "/.htaccess");
-    if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
-        htacc = open(htacc_path, O_RDONLY);
-        aux = *current;
-        *current = htacc;
-        if (aux > 0) close(aux);
-    }
-}
-
 void accessResource(char *dir, char *res, Response *resp, int depth, Login *login, int *protection) {
     struct stat resource_stats;;
     char path[MAX_NAME] = "", target[MAX_NAME] = "";
@@ -203,6 +191,7 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
         // Se o recurso for um diretório   
         case S_IFDIR:
             if (next == NULL) { // Se é o final do path
+                checkProtection(path, protection);
                 auth = authenticate(resp, login, protection);
                 if (!auth) {
                     resp->code = AUTH_REQUIRED;
@@ -249,6 +238,7 @@ void GET(char *res, Response *resp, int socket, Login *login) {
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT | PRINT_LM);
+        flushResponse(logfile, resp, PRINT_TYPE_LENGTH | PRINT_LM);
     }
     else {
         httpError(socket, resp, "");
@@ -261,6 +251,7 @@ void HEAD(char *res, Response *resp, int socket, Login *login) {
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_LM);
+        flushResponse(logfile, resp, PRINT_TYPE_LENGTH | PRINT_LM);
     }
     else {
         httpError(socket, resp, "");
@@ -273,6 +264,7 @@ void OPTIONS(char *res, Response *resp, int socket, Login *login) {
     codeMsg(resp);
     if (resp->code == 200) {
         flushResponse(socket, resp, PRINT_ALLOW);
+        flushResponse(logfile, resp, PRINT_ALLOW);
     }
     else {
         httpError(socket, resp, "");
@@ -283,6 +275,7 @@ void TRACE(char *res, Response *resp, int socket) {
     resp->code = OK;
     strcpy(resp->type, "message/http");
     flushResponse(socket, resp, PRINT_TYPE_LENGTH | PRINT_CONTENT);
+    flushResponse(logfile, resp, PRINT_TYPE_LENGTH);
 }
 
 void extractLogin(listptr mainList, Login *login) {
@@ -321,6 +314,7 @@ int authenticate(Response *resp, Login *login, int *protection) {
 
     if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
         len = read(*protection, htacc_cont, (2*MAX_NAME)+1);
+        htacc_cont[len] = 0;
         htpass_path = mystrtok(htacc_cont, realm, '\n');
         close(*protection);
         if (login->exists) {    // Se há credenciais fornecidas
@@ -347,6 +341,21 @@ int authenticate(Response *resp, Login *login, int *protection) {
     return 1;
 }
 
+void checkProtection(char *dir, int *current) {
+    char htacc_path[MAX_NAME] = "";
+    struct stat htaccess_stats;
+    int htacc, aux;
+
+    strcat(htacc_path, dir);
+    strcat(htacc_path, "/.htaccess");
+    if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
+        htacc = open(htacc_path, O_RDONLY);
+        aux = *current;
+        *current = htacc;
+        if (aux > 0) close(aux);
+    }
+}
+
 int processRequest(listptr mainList, int socket) {
     Response resp;
     CommandNode *list;
@@ -357,8 +366,6 @@ int processRequest(listptr mainList, int socket) {
     list = *mainList;
     method = list->command;
     resource = list->paramList->parameter;
-
-    printf("Thread %ld iniciando processamento do request de %s\n", pthread_self(), resource);
 
     extractLogin(mainList, &login);
 
