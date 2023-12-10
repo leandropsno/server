@@ -306,9 +306,9 @@ void extractLogin(listptr mainList, Login *login) {
 }
 
 int authenticate(Response *resp, Login *login, int *protection) {
-    char htacc_cont[(2*MAX_NAME)+1], realm[MAX_NAME], user[MAX_AUTH];
+    char htacc_cont[(2*MAX_NAME)+1], realm[MAX_NAME], user[MAX_AUTH+1];
     char *htpass_path, *line, *password;
-    int len, htpass_fd, match = 0;
+    int len, htpass_fd, match = 0, authorized = 1;
     size_t linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
     FILE *htpass_stream;
 
@@ -330,15 +330,14 @@ int authenticate(Response *resp, Login *login, int *protection) {
             close(htpass_fd);
             if (match) match = (!strcmp(password, login->password)); // Se o usuário consta e as senhas coincidem
             free(line);
-            return match;
         }
-        else {  // Pede por credenciais
+        if (!match) {  // Pede por credenciais
+            authorized = 0;
             strcpy(resp->auth, "Basic realm=");
             strcat(resp->auth, realm);
-            return 0;
         }
     }
-    return 1;
+    return authorized;
 }
 
 void checkProtection(char *dir, int *current) {

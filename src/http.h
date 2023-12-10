@@ -13,8 +13,8 @@
 #define PRINT_TYPE_LENGTH 1
 #define PRINT_LM 2
 #define PRINT_ALLOW 4
-#define PRINT_CONTENT 8
-#define PRINT_AUTH 16
+#define PRINT_AUTH 8
+#define PRINT_CONTENT 16
 #define TABLE_SIZE 31
 #define DEFAULT_SALT "84"
 

@@ -29,7 +29,7 @@ pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 
 // Tratador de Interrupção
 void intHandler() {
-    printf("encerrando.\n");
+    printf("\nEncerrando.\n");
     pthread_mutex_destroy(&mutex1);
     pthread_mutex_destroy(&mutex2);
     close(connectionSocket);
