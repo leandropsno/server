@@ -50,6 +50,7 @@ void errorHandler(int socket, const char *func, const char *message, pthread_t t
         pthread_mutex_unlock(&mutex1);
         pthread_exit(0);
     }
+    free(resp.content);
 }
 
 // Função principal das threads. Processa a requisição (se houver) em SOCKET.

@@ -37,6 +37,8 @@ Response createResponse() {
     strcpy(resp.connection, "close");
     strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
     resp.size = 0;
+    resp.content = (char *)malloc(sizeof(char) * CHUNK_SIZE);
+
     return resp;
 }
 
@@ -97,15 +99,29 @@ void getMediaType(char *type, char *filename) {
 
 int readContent(char *path, Response *resp) {
     int fd;
-    ssize_t i;
+    ssize_t i = 1, total = 0, size = CHUNK_SIZE;
 
     if ((fd = open(path, O_RDONLY)) == -1) {
         resp->code = INTERNAL_ERROR;
         return -1; 
     }
-    i = read(fd, resp->content, MAX_CONT);
+
+    while (i != 0) {
+        i = read(fd, resp->content + total, CHUNK_SIZE);
+        total += i;
+        if (i == CHUNK_SIZE) {
+            size += CHUNK_SIZE;
+            resp->content = (char *)realloc(resp->content, size);
+            if (resp->content == NULL) {
+                resp->code = INTERNAL_ERROR;
+                close(fd);
+                return -1;
+            }
+        }
+    }
+    
     close(fd);
-    return i;
+    return total;
 }
 
 void searchDir(char *path, Response *resp) {
@@ -291,7 +307,7 @@ void extractLogin(listptr mainList, Login *login) {
             encoded = mystrtok(encoded, tok, ' ');
         }
         decoded = b64_decode((const char*)tok);
-        temp1 = malloc(strlen(decoded)*sizeof(char));
+        temp1 = (char *)malloc(strlen(decoded)*sizeof(char));
         temp2 = mystrtok(decoded, temp1, ':');
         strncpy(login->password, temp2, MAX_AUTH);
         strncpy(login->user, temp1, MAX_AUTH);
@@ -320,7 +336,7 @@ int authenticate(Response *resp, Login *login, int *protection) {
         if (login->exists) {    // Se há credenciais fornecidas
             htpass_fd = open(htpass_path, O_RDONLY);
             htpass_stream = fdopen(htpass_fd, "r");
-            line = malloc(linesize*sizeof(char));
+            line = (char *)malloc(linesize*sizeof(char));
             while ((!match) && len > 0) {
                 len = getline(&line, &linesize, htpass_stream);
                 if (line[len-1] == '\n') line[len-1] = 0;
@@ -381,6 +397,8 @@ int processRequest(listptr mainList, int socket) {
     else if (strcmp(method, "OPTIONS") == 0) {
         OPTIONS(resource, &resp, socket, &login);
     }
+
+    free(resp.content);
 
     return resp.code;
 }

@@ -17,6 +17,7 @@
 #define PRINT_CONTENT 16
 #define TABLE_SIZE 31
 #define DEFAULT_SALT "84"
+#define CHUNK_SIZE 256
 
 typedef struct Response {
     int code;
@@ -25,7 +26,7 @@ typedef struct Response {
     char rdate[MAX_PARAM];
     char server[MAX_PARAM];
     char connection[MAX_PARAM];
-    char content[MAX_CONT];
+    char *content;
     char lmdate[MAX_PARAM];
     char type[MAX_PARAM];
     char allow[MAX_PARAM];
