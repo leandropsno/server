@@ -48,53 +48,75 @@ typedef struct Login {
     char password[CRYPT_OUTPUT_SIZE];
 } Login;
 
-// Cria a struct resposta e preenche os parâmetros Date, Server e Connection.
+/* Creates anda returns a new Response. 
+   The fields Data, Server, Connection and Allow are initialized with default values.
+   The field Content-Length is initialized with 0.
+   Content is dynamically allocated and MUST be freed after the use of the struct. */
 Response createResponse();
 
-// Cria uma página html de erro conforme o código de RESP, contendo a mensagem MESSAGE e imprime em SOCKET.
+/* Create an HTML page displaying the response code and MESSAGE, stores the page in the
+   response content and flushes to SOCKET. */
 void httpPage(int socket, Response *resp, const char *message);
 
-// Armazena em BUF o conteúdo de um arquivo aberto em FD. BUF deve ter sido dinamicamente alocado. Retorna a quantidade de caracteres lidos, sem contar o caractere terminador (NULL) que é adicionado ao final de BUF.
+/* Stores in *BUF the content of an open file with descriptor FD.
+   *BUF must have been dynamically allocated, as the function realloc's it if necessary.
+   Returns the amount of bytes read, not counting the NULL-terminator character which IS
+   appended to *BUF. */ 
 int readContent(int fd, char **buf);
 
-// Verifica a existência de arquivo .htaccess.
+/* Checks if an .htaccess file exists in DIR.
+   If it does, opens it and stores the file descriptor in *CURRENT.
+   If *CURRENT was previously set with another file descriptor, it is closed. */
 void checkProtection(char *dir, int *current);
 
-// Stores the type of FILENAME in TYPE.
+/* Stores the type of FILENAME in TYPE. */
 void getMediaType(char *type, char *filename);
 
-// Percorre o diretório buscando os arquivos padrão (index.html e welcome.html).
+/* Searches for default files (index.html and welcome.html) in PATH.
+   If any of them is found and has read permission, reads its content and
+   changes RESP accordingly. */
 void searchDir(char *path, Response *resp);
 
-// Acessa as estatísticas do recurso RES no diretório DIR, preenche parâmetros e conteúdo da resposta.
+/* Acessess the stats of the resource RES in the directory DIR.
+   If it is found and has read permission, reads its content and
+   changes RESP accordingly.
+   This function is recursive and only returns when the end of RES is reached. The parameter
+   DEPTH indicates how many levels DIR is inside of the webspace root. */
 void accessResource(char *dir, char *res, Response *resp, int depth, Login *login, int *protection);
 
-// Guarda em RESULT a mensagem correspondente a CODE.
+/* Stores in resp->result the message that corresponds to resp->code. */ 
 void codeMsg(Response *resp);
 
-// Imprime os campos de RESP especificados em FIELDS no descritor FD.
+/* Writes an HTTP response message in the file descriptor FD.
+   FIELDS specifies which fields of RESP are to be written, in the form of a bit-OR between
+   the macros PRINT_TYPE_LENGTH, PRINT_LM, PRINT_ALLOW, PRINT_AUTH and PRINT_CONTENT. */ 
 void flushResponse(int fd, Response *resp, int fields);
 
-/* Se houver descritor de um arquivo de proteção aberto em PROTECTION, realiza a autenticação usando as credenciais em LOGIN.
-Retorna 0 se a autenticação falhou (credencial incorreta ou inexistente) e 1 se foi bem sucedida (credencial correta ou proteção inexistente).
-A manipulação de RESP varia para cada uma das situações mencionadas.
+/* Authenticates using the credentials stored in LOGIN and the protection file open in PROTECTION.
+   Returns 0 if authentication failed (incorrect or non-existent credentials) or 1 if
+   successful (corrected credential or non-existent protection).
+   Manipulation of RESP varies for each situation mentioned above.
 */
 int authenticate(Response *resp, Login *login, int *protection);
 
-// Procura por um campo "Authorization" em MAINLIST, e se houver, extrai as informações e armazena em LOGIN.
+/* Searches for the "Authorization" field in MAINLIST. If it is found, extracts the information
+   and stores it in LOGIN. */
 void extractLogin(listptr mainList, Login *login);
 
-// Monta a resposta referente a uma requisição do tipo GET.
+/* Builds the response to a GET request. */
 void GET(char *path, Response *resp, int socket, Login *login);
 
-// Monta a resposta referente a uma requisição do tipo HEAD.
+/* Builds the response to a HEAD request. */
 void HEAD(char *res, Response *resp, int socket, Login *login);
 
-// Monta a resposta referente a uma requisição do tipo OPTIONS.
+/* Builds the response to a OPTIONS request. */
 void OPTIONS(char *path, Response *resp, int socket, Login *login);
 
-// Monta a resposta referente a uma requisição do tipo TRACE.
+/* Builds the response to a TRACE request. */
 void TRACE(char *path, Response *resp, int socket);
 
-// Monta o PATH e chama o método HTTP adequado.
+/* Builds the response to a POST request. */
+void POST(char *res, Response *resp, int socket, Login *login);
+
+/* Extracts login and calls the HTTP method specified in MAINLIST. */
 int processRequest(listptr mainList, int socket);

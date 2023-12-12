@@ -299,19 +299,6 @@ void TRACE(char *res, Response *resp, int socket) {
     flushResponse(logfile, resp, PRINT_TYPE_LENGTH);
 }
 
-int writeContent(char *path, Response *resp, char *content) {
-    int fd;
-    ssize_t i = 1, total = 0, size = CHUNK_SIZE;
-
-    if ((fd = open(path, O_RDONLY)) == -1) {
-        resp->code = INTERNAL_ERROR;
-        return -1; 
-    }
-
-    close(fd);
-    return total;
-}
-
 void POST(char *res, Response *resp, int socket, Login *login) {
     char path[MAX_NAME + 1] = "", aux[MAX_NAME + 1] = "", salt[3] = "";
     char userName[MAX_AUTH+1], oldPasswd[MAX_AUTH+1], newPasswd[MAX_AUTH+1], confPasswd[MAX_AUTH+1];
