@@ -42,8 +42,8 @@ Response createResponse() {
     return resp;
 }
 
-void httpError(int socket, Response *resp, const char *message) {
-    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
+void httpPage(int socket, Response *resp, const char *message) {
+    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>%d %s</h1>\n\t\t<p>%s</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content);
     strcpy(resp->type, "text/html");
     int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
@@ -262,7 +262,7 @@ void GET(char *res, Response *resp, int socket, Login *login) {
         flushResponse(logfile, resp, PRINT_TYPE_LENGTH | PRINT_LM);
     }
     else {
-        httpError(socket, resp, "");
+        httpPage(socket, resp, "");
     }
 }
 
@@ -275,7 +275,7 @@ void HEAD(char *res, Response *resp, int socket, Login *login) {
         flushResponse(logfile, resp, PRINT_TYPE_LENGTH | PRINT_LM);
     }
     else {
-        httpError(socket, resp, "");
+        httpPage(socket, resp, "");
     }
 }
 
@@ -288,7 +288,7 @@ void OPTIONS(char *res, Response *resp, int socket, Login *login) {
         flushResponse(logfile, resp, PRINT_ALLOW);
     }
     else {
-        httpError(socket, resp, "");
+        httpPage(socket, resp, "");
     }
 }
 
@@ -313,15 +313,17 @@ int writeContent(char *path, Response *resp, char *content) {
 }
 
 void POST(char *res, Response *resp, int socket, Login *login) {
-    char path[MAX_NAME + 1] = "", dir[MAX_NAME + 1];
+    char path[MAX_NAME + 1] = "", aux[MAX_NAME + 1] = "", salt[3] = "";
     char userName[MAX_AUTH+1], oldPasswd[MAX_AUTH+1], newPasswd[MAX_AUTH+1], confPasswd[MAX_AUTH+1];
-    char *next, *load = (char *)malloc(CHUNK_SIZE);
-    int len, fd;
+    char *next, *load = (char *)malloc(CHUNK_SIZE), *encrypted;
+    int len, fd, match = 0;
+    off_t offset = 0;
 
     len = readContent(socket, &load);
-    if (len < 0) {
+    if (len <= 0) {
         resp->code = BAD_REQUEST;
-        httpError(socket, resp, "Nenhuma informação recebida.");
+        codeMsg(resp);
+        httpPage(socket, resp, "Nenhuma informação recebida.");
         return;
     }
 
@@ -336,7 +338,8 @@ void POST(char *res, Response *resp, int socket, Login *login) {
 
     if (strcmp(newPasswd, confPasswd)) {
         resp->code = BAD_REQUEST;
-        httpError(socket, resp, "Nova senha não coincide com a confirmação.");
+        codeMsg(resp);
+        httpPage(socket, resp, "Nova senha não coincide com a confirmação.");
         return;
     }
     
@@ -344,8 +347,8 @@ void POST(char *res, Response *resp, int socket, Login *login) {
     next = res;
     strcat(path, webSpacePath);
     while (strcmp(next, "nova_senha.html")) { // Enquanto next for diferente de "nova_senha.html"
-        next = mystrtok(res, dir, '/');
-        strcat(path, dir);
+        next = mystrtok(next, aux, '/');
+        strcat(path, aux);
         strcat(path, "/");
     }
     strcat(path, ".htaccess");
@@ -360,12 +363,43 @@ void POST(char *res, Response *resp, int socket, Login *login) {
     next = mystrtok(load, path, '\n'); // next aponta para o path do .htpassword
 
     // Abre e lê o conteudo do .htpassword
-    if ((fd = open(next, O_RDONLY)) == -1) {
+    if ((fd = open(next, O_RDWR)) == -1) {
         resp->code = INTERNAL_ERROR;
         return; 
     }
     len = readContent(fd, &load);
+
+    // Percorre o arquivo de senhas
+    next = load;
+    while (next != NULL) {
+        next = mystrtok(next, aux, ':');
+        offset += strlen(aux) + 1;
+        if (!strcmp(aux, userName)) {   // Se encontrou o usuário no arquivo de senhas
+            match = 1;
+            break;
+        }
+        next = mystrtok(next, aux, '\n');
+        offset += strlen(aux) + 1;
+    }
+    if (match) {
+        next = mystrtok(next, aux, '\n');
+        strncpy(salt, aux, 2);
+        encrypted = crypt(oldPasswd, salt);
+        match = (!strcmp(aux, encrypted));  // Se a senha criptografada coincide com a senha no arquivo de senhas
+    }
+    if (match) {
+        encrypted = crypt(newPasswd, salt);
+        offset = lseek(fd, offset, SEEK_SET);
+        len = write(fd, encrypted, strlen(encrypted));
+        resp->code = OK;
+        httpPage(socket, resp, "Senha atualizada com sucesso.");
+    }
+    else {  // Caso o usuário não seja encontrado OU senhas não coincidam
+        resp->code = BAD_REQUEST;
+        httpPage(socket, resp, "Usuário e/ou senha não conferem.");
+    }
     free(load);
+    close(fd);
 }
 
 void extractLogin(listptr mainList, Login *login) {

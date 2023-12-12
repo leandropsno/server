@@ -42,7 +42,7 @@ void errorHandler(int socket, const char *func, const char *message, pthread_t t
     Response resp = createResponse();
     resp.code = INTERNAL_ERROR;
     codeMsg(&resp);
-    httpError(socket, &resp, message);
+    httpPage(socket, &resp, message);
     close(socket);
     if (thread != 0) {
         pthread_mutex_lock(&mutex1);

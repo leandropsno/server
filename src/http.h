@@ -52,7 +52,7 @@ typedef struct Login {
 Response createResponse();
 
 // Cria uma página html de erro conforme o código de RESP, contendo a mensagem MESSAGE e imprime em SOCKET.
-void httpError(int socket, Response *resp, const char *message);
+void httpPage(int socket, Response *resp, const char *message);
 
 // Armazena em BUF o conteúdo de um arquivo aberto em FD. BUF deve ter sido dinamicamente alocado. Retorna a quantidade de caracteres lidos, sem contar o caractere terminador (NULL) que é adicionado ao final de BUF.
 int readContent(int fd, char **buf);
