@@ -12,3 +12,5 @@ gcc -o server server.c lex.yy.c http.c lists.c ast.c http.tab.c -lfl -ly -lpthre
 
 # Volte para a raiz do servidor - o programa deve ser executado DAQUI da seguinte forma: src/server ../webspace N PORT log.txt
 cd ..
+
+# Para encerrar a execução do servidor, dê um sinal de interrupção (Ctrl+C).

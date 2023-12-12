@@ -60,6 +60,7 @@ void httpPage(int socket, Response *resp, const char *message);
 
 /* Stores in *BUF the content of an open file with descriptor FD.
    *BUF must have been dynamically allocated, as the function realloc's it if necessary.
+   FD must be a valid open descriptor, as the function does not verificate it.
    Returns the amount of bytes read, not counting the NULL-terminator character which IS
    appended to *BUF. */ 
 int readContent(int fd, char **buf);

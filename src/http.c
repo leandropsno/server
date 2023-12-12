@@ -16,6 +16,7 @@
 #include "ast.h"
 #include "http.h"
 
+// Tabela de Media Types
 const char *fileTable[TABLE_SIZE][2] = {
     {"htm", "text/html"}, {"html", "text/html"}, {"txt", "text/plain"}, {"css", "text/css"}, {"csv", "text/csv"}, {"js", "text/javascript"},
     {"avif", "image/avif"}, {"bmp", "image/bmp"}, {"gif", "image/gif"}, {"jpg", "image/jpeg"},  {"jpeg", "image/jpeg"}, {"png", "image/png"}, {"tif", "image/tiff"}, {"tiff", "image/tiff"}, {"webp", "image/webp"},
@@ -30,25 +31,26 @@ Response createResponse() {
     Response resp;
     struct timeval tv;
 
-    gettimeofday(&tv, NULL);
-    strcpy(resp.rdate, asctime(localtime(&tv.tv_sec)));
+    gettimeofday(&tv, NULL);    // Obtem o horário do sistema
+    strcpy(resp.rdate, asctime(localtime(&tv.tv_sec))); // Preenche parâmetro Date
     resp.rdate[strlen(resp.rdate)-1] = 0;   // Tira quebra de linha do final
-    strcpy(resp.server, "Servidor HTTP versão 13 de Leandro Ponsano");
-    strcpy(resp.connection, "close");
-    strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE");
-    resp.size = 0;
-    resp.content = (char *)malloc(sizeof(char) * CHUNK_SIZE);
+    strcpy(resp.server, "Servidor HTTP versão 13 de Leandro Ponsano");  // Preenche parâmetro Server
+    strcpy(resp.connection, "close"); // Preenche parâmetro Connection
+    strcpy(resp.allow, "GET, HEAD, OPTIONS, TRACE"); // Preenche parâmetro Allow
+    resp.size = 0;  // Inicializa parâmetro Content-Length com 0
+    resp.content = (char *)malloc(sizeof(char) * CHUNK_SIZE);   // Aloca memória para o conteúdo da resposta
 
     return resp;
 }
 
 void httpPage(int socket, Response *resp, const char *message) {
+    // Cria a página HTML e armazena no conteúdo da resposta
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>%d %s</h1>\n\t\t<p>%s</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
-    resp->size = strlen(resp->content);
-    strcpy(resp->type, "text/html");
+    resp->size = strlen(resp->content); // Preenche parâmetro Content-Length
+    strcpy(resp->type, "text/html");    // Preenche parâmetro Content-Type
     int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
     if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
-    flushResponse(socket, resp, fields);
+    flushResponse(socket, resp, fields);    
     fields = PRINT_TYPE_LENGTH;
     if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
     flushResponse(logfile, resp, fields);
@@ -102,13 +104,15 @@ void getMediaType(char *type, char *filename) {
 
 int readContent(int fd, char **buf) {
     ssize_t i = CHUNK_SIZE, total = 0, size = CHUNK_SIZE;
+
+    // Lê um chunk de conteúdo
     while (i >= CHUNK_SIZE) {
         i = read(fd, *buf + total, CHUNK_SIZE);
         total += i;
-        if (i == CHUNK_SIZE) {
+        if (i == CHUNK_SIZE) {  // Se um chunk inteiro foi lido
             size += CHUNK_SIZE;
-            *buf = (char *)realloc(*buf, size);
-            if (*buf == NULL) {
+            *buf = (char *)realloc(*buf, size); // Realoca o buffer de um chunk
+            if (*buf == NULL) { // Se houve falha na realocação
                 return -1;
             }
         }
@@ -133,18 +137,18 @@ void searchDir(char *path, Response *resp) {
         struct stat file_stats;
         if (stat(filename, &file_stats) == 0) {
             found = 1;
-            if (access(filename, R_OK) == 0) { // Encontrou um arquivo com permissão de leitura
-                if ((fd = open(filename, O_RDONLY)) == -1) {
+            if (access(filename, R_OK) == 0) { // Se encontrou um arquivo com permissão de leitura
+                if ((fd = open(filename, O_RDONLY)) == -1) {    // Se houve falha na abertura do arquivo
                     resp->code = INTERNAL_ERROR;
                     return; 
                 }
                 len = readContent(fd, &resp->content);
                 close(fd);
-                resp->code = OK;  
+                resp->code = OK;  // Preenche parâmetro Status Code
                 read = 1;
-                resp->size = len;
-                strcpy(resp->type, "text/html");
-                strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime)));
+                resp->size = len;   // Preenche parâmetro Content-Length
+                strcpy(resp->type, "text/html");    // Preenche parâmetro Content-Type
+                strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime))); // Preenche parâmetro Last-Modified
                 resp->lmdate[strlen(resp->lmdate)-1] = 0;   // Tira quebra de linha do final
             }
         }
@@ -153,7 +157,7 @@ void searchDir(char *path, Response *resp) {
     if (!found) { // Se nenhum dos dois foi encontrado
         resp->code = NOT_FOUND;
     }
-    else if (!read) {  // Se algum foi encontrado mas nenhum tinha permissao de leitura
+    else if (!read) {  // Se algum foi encontrado mas nenhum tinha permissão de leitura
         resp->code = FORBIDDEN;
     }
 }
@@ -188,8 +192,8 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
     switch (resource_stats.st_mode & S_IFMT) {
         // Se o recurso for um arquivo regular
         case S_IFREG:
-            auth = authenticate(resp, login, protection);
-            if (!auth) {
+            auth = authenticate(resp, login, protection);   // Realiza a autenticação
+            if (!auth) {    // Se a autenticação falhou
                 resp->code = AUTH_REQUIRED;
                 return;
             }
@@ -213,8 +217,8 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
         case S_IFDIR:
             if (next == NULL) { // Se é o final do path
                 checkProtection(path, protection);
-                auth = authenticate(resp, login, protection);
-                if (!auth) {
+                auth = authenticate(resp, login, protection); // Realiza a autenticação
+                if (!auth) { // Se a autenticação falhou
                     resp->code = AUTH_REQUIRED;
                     return;
                 }
@@ -229,10 +233,13 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
 }
 
 void flushResponse(int fd, Response *resp, int fields) {
+    // Imprime os campos de cabeçalho padrão
     dprintf(fd, "HTTP/1.1 %d %s\r\n", resp->code, resp->result);  
     dprintf(fd, "Date: %s\r\n", resp->rdate);
     dprintf(fd, "Server: %s\r\n", resp->server);    
     dprintf(fd, "Connection: %s\r\n", resp->connection);
+
+    // Imprime os campos de cabeçalho especificados em FIELDS
     if (fields & PRINT_TYPE_LENGTH) { 
         dprintf(fd, "Content-Type: %s\r\n", resp->type);
         dprintf(fd, "Content-Length: %d\r\n", resp->size);   
@@ -306,6 +313,7 @@ void POST(char *res, Response *resp, int socket, Login *login) {
     int len, fd, match = 0;
     off_t offset = 0;
 
+    // Lê o conteúdo enviado pelo POST
     len = readContent(socket, &load);
     if (len <= 0) {
         resp->code = BAD_REQUEST;
@@ -313,7 +321,8 @@ void POST(char *res, Response *resp, int socket, Login *login) {
         httpPage(socket, resp, "Nenhuma informação recebida.");
         return;
     }
-
+    
+    // Obtém os campos separados
     next = load + 5;    // Ignora "user="
     next = mystrtok(next, userName, '&');
     next = next + 7;    // Ignora "antiga="
@@ -323,6 +332,7 @@ void POST(char *res, Response *resp, int socket, Login *login) {
     next = next + 5;    // Ignora "conf="
     next = mystrtok(next, confPasswd, '&');
 
+    // Confere se a senha e a confirmação coincidem
     if (strcmp(newPasswd, confPasswd)) {
         resp->code = BAD_REQUEST;
         codeMsg(resp);
@@ -358,26 +368,27 @@ void POST(char *res, Response *resp, int socket, Login *login) {
 
     // Percorre o arquivo de senhas
     next = load;
-    while (next != NULL) {
+    while (next != NULL) {  // Procura pelo nome de usuário no arquivo de senhas
         next = mystrtok(next, aux, ':');
         offset += strlen(aux) + 1;
-        if (!strcmp(aux, userName)) {   // Se encontrou o usuário no arquivo de senhas
+        if (!strcmp(aux, userName)) {   
             match = 1;
             break;
         }
         next = mystrtok(next, aux, '\n');
         offset += strlen(aux) + 1;
     }
-    if (match) {
-        next = mystrtok(next, aux, '\n');
+    // Se encontrou o usuário no arquivo de senhas
+    if (match) {    
+        next = mystrtok(next, aux, '\n'); // Obtém a senha registrada (criptografada)
         strncpy(salt, aux, 2);
         encrypted = crypt(oldPasswd, salt);
-        match = (!strcmp(aux, encrypted));  // Se a senha criptografada coincide com a senha no arquivo de senhas
+        match = (!strcmp(aux, encrypted)); 
     }
-    if (match) {
-        encrypted = crypt(newPasswd, salt);
-        offset = lseek(fd, offset, SEEK_SET);
-        len = write(fd, encrypted, strlen(encrypted));
+    if (match) {     // Se a senha criptografada coincide com a senha no arquivo de senhas
+        encrypted = crypt(newPasswd, salt); // Crpitografa a nova senha
+        offset = lseek(fd, offset, SEEK_SET); // Seta o offset para a posição da nova senha
+        len = write(fd, encrypted, strlen(encrypted));  // Escreve a nova senha
         resp->code = OK;
         httpPage(socket, resp, "Senha atualizada com sucesso.");
     }
@@ -398,20 +409,20 @@ void extractLogin(listptr mainList, Login *login) {
         login->exists = 1;
         encoded = auth->paramList->parameter;
         char tok[strlen(encoded)];
-        while (encoded != NULL) {
+        while (encoded != NULL) { // Obtém o par usuário:senha codificada
             encoded = mystrtok(encoded, tok, ' ');
         }
-        decoded = b64_decode((const char*)tok);
-        temp1 = (char *)malloc(strlen(decoded)*sizeof(char));
-        temp2 = mystrtok(decoded, temp1, ':');
+        decoded = b64_decode((const char*)tok); // Decodifica o par usuário:senha
+        temp1 = (char *)malloc(strlen(decoded)*sizeof(char));   
+        temp2 = mystrtok(decoded, temp1, ':');  // Obtém a senha
         strncpy(login->password, temp2, MAX_AUTH);
         strncpy(login->user, temp1, MAX_AUTH);
         login->password[MAX_AUTH] = 0;  // Trunca senha para 8 caracteres
         login->user[MAX_AUTH] = 0;      // Trunca usuário para 8 caracteres
         free(decoded);
         free(temp1);
-        char *encrypted = crypt(login->password, DEFAULT_SALT);
-        strcpy(login->password, encrypted);
+        char *encrypted = crypt(login->password, DEFAULT_SALT); // Criptografa a senha
+        strcpy(login->password, encrypted); // Armazena a sneha criptografada no login
     }
     else login->exists = 0;
 }
@@ -424,24 +435,24 @@ int authenticate(Response *resp, Login *login, int *protection) {
     FILE *htpass_stream;
 
     if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
-        len = readContent(*protection, &htacc_cont);
-        htpass_path = mystrtok(htacc_cont, realm, '\n');
+        len = readContent(*protection, &htacc_cont); // Lê o conteúdo do .htaccess
+        htpass_path = mystrtok(htacc_cont, realm, '\n'); // Obtém acaminho para o .htpassword
         close(*protection);
         if (login->exists) {    // Se há credenciais fornecidas
-            htpass_fd = open(htpass_path, O_RDONLY);
-            htpass_stream = fdopen(htpass_fd, "r");
+            htpass_fd = open(htpass_path, O_RDONLY); // Abre .htpassword
+            htpass_stream = fdopen(htpass_fd, "r"); // Gera um FILE* a partir do descritor
             line = (char *)malloc(linesize*sizeof(char));
-            while ((!match) && len > 0) {
-                len = getline(&line, &linesize, htpass_stream);
-                if (line[len-1] == '\n') line[len-1] = 0;
-                password = mystrtok(line, user, ':');
-                if (!strcmp(user, login->user)) match = 1;
+            while ((!match) && len > 0) { // Procura pelo usuário no arquivo de senhas
+                len = getline(&line, &linesize, htpass_stream); // Lê uma linha do .htpassword
+                if (line[len-1] == '\n') line[len-1] = 0;   // Retira quebra de linha 
+                password = mystrtok(line, user, ':');   // Separa usuário e senha
+                if (!strcmp(user, login->user)) match = 1; 
             }
             close(htpass_fd);
             if (match) match = (!strcmp(password, login->password)); // Se o usuário consta e as senhas coincidem
             free(line);
         }
-        if (!match) {  // Pede por credenciais
+        if (!match) {  // Se não houve match, pede por credenciais
             authorized = 0;
             strcpy(resp->auth, "Basic realm=");
             strcat(resp->auth, realm);
@@ -456,6 +467,7 @@ void checkProtection(char *dir, int *current) {
     struct stat htaccess_stats;
     int htacc, aux;
 
+    // Monta caminho para o .htaccess
     strcat(htacc_path, dir);
     strcat(htacc_path, "/.htaccess");
     if (stat(htacc_path, &htaccess_stats) != -1) { // Se achar um arquivo .htaccess
@@ -472,11 +484,13 @@ int processRequest(listptr mainList, int socket) {
     Login login;
     char *method, *resource;
     
+    // Cria uma resposta e obtém os parâmetros da requisição
     resp = createResponse();
     list = *mainList;
     method = list->command;
     resource = list->paramList->parameter;
-
+    
+    // Procura por credenciais fornecidas e, se houver, as armazena em LOGIN
     extractLogin(mainList, &login);
 
     if (strcmp(method, "GET") == 0) {

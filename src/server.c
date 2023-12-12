@@ -27,7 +27,7 @@ long unsigned int timeout = 1000;
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 
-// Tratador de Interrupção
+/* Tratador de interrupção SIGINT. Libera os mutexes, fecha o socket e encerra o programa. */
 void intHandler() {
     printf("\nEncerrando.\n");
     pthread_mutex_destroy(&mutex1);
@@ -36,15 +36,18 @@ void intHandler() {
     exit(0);
 }
 
-// Tratador de erros internos.
+/* Tratador de erros internos.
+   FUNC indica se o erro foi causada por uma chamada de sistema. MESSAGE é escrita na pagina HTML
+   de erro a ser enviada ao cliente. THREAD indica a thread que causou o erro e deve ser encerrada.
+   Se o erro foi causada pela thread-mãe (principal), THREAD deve ser 0. */
 void errorHandler(int socket, const char *func, const char *message, pthread_t thread) {
-    if (func != NULL) perror(func);
+    if (func != NULL) perror(func); // Se houve erro interno, imprime a mensagem de erro
     Response resp = createResponse();
     resp.code = INTERNAL_ERROR;
     codeMsg(&resp);
-    httpPage(socket, &resp, message);
+    httpPage(socket, &resp, message); // Envia página de erro para o cliente
     close(socket);
-    if (thread != 0) {
+    if (thread != 0) {  // Se erro foi causado por thread-filha, encerra e incrementa o contador
         pthread_mutex_lock(&mutex1);
         n_threads++;
         pthread_mutex_unlock(&mutex1);
@@ -53,31 +56,33 @@ void errorHandler(int socket, const char *func, const char *message, pthread_t t
     free(resp.content);
 }
 
-// Função principal das threads. Processa a requisição (se houver) em SOCKET.
+/* Função principal das threads. Processa a requisição (se houver) em SOCKET. */
 void *threadMain(void *socket) {
     int result, msgLen, error;
     struct pollfd connection;
     char requestMessage[MAX_CONT];
 
+    // Adiciona o descritor do socket no set de descritores
     connection.events = POLLIN;
     connection.fd = (intptr_t)socket;
+    // Aguarda o socket estar pronto para leitura
     int n = poll(&connection, 1, timeout);
 
-    if ((n > 0) && (connection.revents == POLLIN)) {
-        msgLen = read(connection.fd, requestMessage, MAX_CONT);
-        if (msgLen > 0) {
-            requestMessage[msgLen] = 0;         
-            CommandNode* mainList = NULL;
-            pthread_mutex_lock(&mutex2);
+    if ((n > 0) && (connection.revents == POLLIN)) {  // Se foi detectada possível leitura
+        msgLen = read(connection.fd, requestMessage, MAX_CONT); // Lê requisição inteira
+        if (msgLen > 0) {     
+            requestMessage[msgLen] = 0;  
+            CommandNode* mainList = NULL;   // Cria lista 
+            pthread_mutex_lock(&mutex2);    // Bloqueia mutex
             write(logfile, "----- Novo Par Requisição/Resposta -----\n", 42);
             yy_scan_string(requestMessage);
-            error = yyparse(&mainList, &result, connection.fd);
+            error = yyparse(&mainList, &result, connection.fd); // Analisa requisição
             write(logfile, "----------------------------------------\n\n", 43);
-            pthread_mutex_unlock(&mutex2);
+            pthread_mutex_unlock(&mutex2);  // Libera mutex
             mainList = NULL;
-            cleanupList(&mainList);
+            cleanupList(&mainList); // Destrói lista
             if (error == 1) {
-                errorHandler(connection.fd, NULL, "", pthread_self());
+                errorHandler(connection.fd, "Error in yyparse()", "", pthread_self());
             }
             else if (error == 2) {
                 errorHandler(connection.fd, "Error in yyparse()", "", pthread_self());
@@ -87,6 +92,7 @@ void *threadMain(void *socket) {
     else if (n < 0) {
         errorHandler(connection.fd, "Error in poll()", "", (pthread_t)0);
     }
+    // Encerra thread, fecha socket e incrementa contador
     pthread_mutex_lock(&mutex1);
     n_threads++;
     close(connection.fd);
@@ -94,7 +100,7 @@ void *threadMain(void *socket) {
     pthread_exit(0);
 }
 
-// Abre um socket na porta especificada.
+/* Abre um socket na porta especificada. */
 int connectSocket(char *port) {
     struct sockaddr_in client, server;	
     int sock;
