@@ -7,7 +7,7 @@
 extern int logfile;
 %}
 
-COMMAND     (GET|HEAD|OPTIONS|TRACE)[ ][^ :,\t\r\n]+[ ][^ :,\t\r\n]+
+COMMAND     (GET|HEAD|OPTIONS|TRACE|POST)[ ][^ :,\t\r\n]+[ ][^ :,\t\r\n]+
 HOST_PORT   (Host)[:][ ][^ :,\t\r\n]+:[0-9]{1,5}
 ARG         [^,\t\r\n]+[:][ ][^\r\n]+
 NEWLINE     [\r][\n]
@@ -18,7 +18,6 @@ NEWLINE     [\r][\n]
 {HOST_PORT}     { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return HOST_PORT; }
 {ARG}           { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return ARG; }
 {NEWLINE}       { write(logfile, yytext, yyleng); strcpy(yylval.word, yytext); return NEWLINE; }
-.               { printf("Sequência não reconhecida: %s\n", yytext); }
 
 %%
 

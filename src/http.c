@@ -43,7 +43,7 @@ Response createResponse() {
 }
 
 void httpError(int socket, Response *resp, const char *message) {
-    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s.</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
+    sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>ERROR %d</h1>\n\t\t<p>%s<br>%s</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content);
     strcpy(resp->type, "text/html");
     int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
@@ -71,6 +71,9 @@ void codeMsg(Response *resp) {
         case AUTH_REQUIRED:
             strcpy(resp->result, "Authorization Required");
             break;
+        case BAD_REQUEST:
+            strcpy(resp->result, "Bad Request");
+            break;
     }
 }
 
@@ -97,37 +100,29 @@ void getMediaType(char *type, char *filename) {
 
 }
 
-int readContent(char *path, Response *resp) {
-    int fd;
-    ssize_t i = 1, total = 0, size = CHUNK_SIZE;
-
-    if ((fd = open(path, O_RDONLY)) == -1) {
-        resp->code = INTERNAL_ERROR;
-        return -1; 
-    }
-
-    while (i != 0) {
-        i = read(fd, resp->content + total, CHUNK_SIZE);
+int readContent(int fd, char **buf) {
+    ssize_t i = CHUNK_SIZE, total = 0, size = CHUNK_SIZE;
+    while (i >= CHUNK_SIZE) {
+        i = read(fd, *buf + total, CHUNK_SIZE);
         total += i;
         if (i == CHUNK_SIZE) {
             size += CHUNK_SIZE;
-            resp->content = (char *)realloc(resp->content, size);
-            if (resp->content == NULL) {
-                resp->code = INTERNAL_ERROR;
-                close(fd);
+            *buf = (char *)realloc(*buf, size);
+            if (*buf == NULL) {
                 return -1;
             }
         }
     }
-    
-    close(fd);
+    char *end = *buf;
+    end += total;
+    *end = 0;
     return total;
 }
 
 void searchDir(char *path, Response *resp) {
     char resources[2][13] = {"/index.html", "/welcome.html"};
     char filename[MAX_NAME];
-    int found = 0, read = 0, len, i;
+    int found = 0, read = 0, len, i, fd;
 
     for (i = 0; i < 2; i++) {
         // Monta path para o recurso padrão
@@ -139,7 +134,12 @@ void searchDir(char *path, Response *resp) {
         if (stat(filename, &file_stats) == 0) {
             found = 1;
             if (access(filename, R_OK) == 0) { // Encontrou um arquivo com permissão de leitura
-                len = readContent(filename, resp);
+                if ((fd = open(filename, O_RDONLY)) == -1) {
+                    resp->code = INTERNAL_ERROR;
+                    return; 
+                }
+                len = readContent(fd, &resp->content);
+                close(fd);
                 resp->code = OK;  
                 read = 1;
                 resp->size = len;
@@ -162,7 +162,7 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
     struct stat resource_stats;;
     char path[MAX_NAME] = "", target[MAX_NAME] = "";
     char *next;
-    int len, auth;
+    int len, auth, fd;
 
     // Verifica a existência de arquivo de proteção .htaccess
     checkProtection(dir, protection);
@@ -197,7 +197,12 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
             else {
                 // Preenche Content-Type, Content-Length e Last-Modified
                 getMediaType(resp->type, path);
-                len = readContent(path, resp);
+                if ((fd = open(path, O_RDONLY)) == -1) {
+                    resp->code = INTERNAL_ERROR;
+                    return; 
+                }
+                len = readContent(fd, &resp->content);
+                close(fd);
                 resp->code = OK;
                 resp->size = len;
                 strcpy(resp->lmdate, asctime(localtime(&resource_stats.st_mtime)));
@@ -294,6 +299,75 @@ void TRACE(char *res, Response *resp, int socket) {
     flushResponse(logfile, resp, PRINT_TYPE_LENGTH);
 }
 
+int writeContent(char *path, Response *resp, char *content) {
+    int fd;
+    ssize_t i = 1, total = 0, size = CHUNK_SIZE;
+
+    if ((fd = open(path, O_RDONLY)) == -1) {
+        resp->code = INTERNAL_ERROR;
+        return -1; 
+    }
+
+    close(fd);
+    return total;
+}
+
+void POST(char *res, Response *resp, int socket, Login *login) {
+    char path[MAX_NAME + 1] = "", dir[MAX_NAME + 1];
+    char userName[MAX_AUTH+1], oldPasswd[MAX_AUTH+1], newPasswd[MAX_AUTH+1], confPasswd[MAX_AUTH+1];
+    char *next, *load = (char *)malloc(CHUNK_SIZE);
+    int len, fd;
+
+    len = readContent(socket, &load);
+    if (len < 0) {
+        resp->code = BAD_REQUEST;
+        httpError(socket, resp, "Nenhuma informação recebida.");
+        return;
+    }
+
+    next = load + 5;    // Ignora "user="
+    next = mystrtok(next, userName, '&');
+    next = next + 7;    // Ignora "antiga="
+    next = mystrtok(next, oldPasswd, '&');
+    next = next + 5;    // Ignora "nova="
+    next = mystrtok(next, newPasswd, '&');
+    next = next + 5;    // Ignora "conf="
+    next = mystrtok(next, confPasswd, '&');
+
+    if (strcmp(newPasswd, confPasswd)) {
+        resp->code = BAD_REQUEST;
+        httpError(socket, resp, "Nova senha não coincide com a confirmação.");
+        return;
+    }
+    
+    // Monta o path para o .htaccess do diretório em questão
+    next = res;
+    strcat(path, webSpacePath);
+    while (strcmp(next, "nova_senha.html")) { // Enquanto next for diferente de "nova_senha.html"
+        next = mystrtok(res, dir, '/');
+        strcat(path, dir);
+        strcat(path, "/");
+    }
+    strcat(path, ".htaccess");
+
+    // Abre e lê o conteudo do .htaccess
+    if ((fd = open(path, O_RDONLY)) == -1) {
+        resp->code = INTERNAL_ERROR;
+        return; 
+    }
+    len = readContent(fd, &load);
+    close(fd);
+    next = mystrtok(load, path, '\n'); // next aponta para o path do .htpassword
+
+    // Abre e lê o conteudo do .htpassword
+    if ((fd = open(next, O_RDONLY)) == -1) {
+        resp->code = INTERNAL_ERROR;
+        return; 
+    }
+    len = readContent(fd, &load);
+    free(load);
+}
+
 void extractLogin(listptr mainList, Login *login) {
     CommandNode *auth;
     char *encoded, *decoded, *temp1, *temp2;
@@ -322,15 +396,14 @@ void extractLogin(listptr mainList, Login *login) {
 }
 
 int authenticate(Response *resp, Login *login, int *protection) {
-    char htacc_cont[(2*MAX_NAME)+1], realm[MAX_NAME], user[MAX_AUTH+1];
-    char *htpass_path, *line, *password;
+    char realm[MAX_NAME], user[MAX_AUTH+1];
+    char *htpass_path, *line, *password, *htacc_cont = (char *)malloc((2*MAX_NAME)+1);
     int len, htpass_fd, match = 0, authorized = 1;
     size_t linesize = MAX_AUTH+1+CRYPT_OUTPUT_SIZE+1;
     FILE *htpass_stream;
 
     if (*protection > 0) {  // Se existe um arquivo .htaccess protegendo o recurso alvo
-        len = read(*protection, htacc_cont, (2*MAX_NAME)+1);
-        htacc_cont[len] = 0;
+        len = readContent(*protection, &htacc_cont);
         htpass_path = mystrtok(htacc_cont, realm, '\n');
         close(*protection);
         if (login->exists) {    // Se há credenciais fornecidas
@@ -353,6 +426,7 @@ int authenticate(Response *resp, Login *login, int *protection) {
             strcat(resp->auth, realm);
         }
     }
+    free(htacc_cont);
     return authorized;
 }
 
@@ -396,6 +470,9 @@ int processRequest(listptr mainList, int socket) {
     }
     else if (strcmp(method, "OPTIONS") == 0) {
         OPTIONS(resource, &resp, socket, &login);
+    }
+    else if (strcmp(method, "POST") == 0) {
+        POST(resource, &resp, socket, &login);
     }
 
     free(resp.content);
