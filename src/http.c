@@ -221,15 +221,15 @@ void accessResource(char *dir, char *res, Response *resp, int depth, Login *logi
             break;
         // Se o recurso for um diretório   
         case S_IFDIR:
-            if (next == NULL) { // Se é o final do path
+            if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
+            else if (next == NULL) { // Se é o final do path
                 checkProtection(path, protection);
                 auth = authenticate(resp, login, protection); // Realiza a autenticação
                 if (!auth) { // Se a autenticação falhou
                     resp->code = AUTH_REQUIRED;
                     return;
                 }
-                if ((access(path, X_OK) != 0)) resp->code = FORBIDDEN;  // Se tem permissão de varredura
-                else searchDir(path, resp);
+                searchDir(path, resp);
             }
             else if (!strcmp(target, "..")) accessResource(path, next, resp, depth - 1, login, protection);  // Se for o diretório pai
             else if (!strcmp(target, ".")) accessResource(path, next, resp, depth, login, protection);  // Se for o próprio diretório

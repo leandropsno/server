@@ -146,7 +146,7 @@ void main(int argc, char **argv) {
     
     // Realiza a conexão na porta especificada
     connectionSocket = connectSocket(argv[3]);
-    // sleep(30);
+    sleep(40);
 
     // Abre o arquivo de log (registro)
     logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
