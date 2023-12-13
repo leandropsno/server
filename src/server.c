@@ -20,7 +20,7 @@
 
 #define INTERNAL_ERROR 500
 
-char webSpacePath[50];
+char webSpacePath[MAX_NAME], charset[MAX_PARAM];
 int connectionSocket, logfile;
 int n_threads;
 long unsigned int timeout = 1000;
@@ -126,8 +126,8 @@ void main(int argc, char **argv) {
     int msgSocket;
 
     // Verifica número de argumentos
-    if ((argc < 4) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
-        printf("Uso: ./servidor <web_space> <N> <port_number> <log_file>\n");
+    if ((argc < 5) || (!strcmp(argv[1], "-h")) || (!strcmp(argv[1], "--help"))) {
+        printf("Uso: ./servidor <web_space> <N> <port_number> <log_file> <charset>\n");
         exit(1);
     }
     
@@ -150,6 +150,9 @@ void main(int argc, char **argv) {
 
     // Abre o arquivo de log (registro)
     logfile = open(argv[4], O_CREAT | O_APPEND | O_RDWR, 00700);
+
+    // Seta o charset dessejado
+    strcpy(charset, argv[5]);
     
     while (1) {
         // Aguarda conexão no socket

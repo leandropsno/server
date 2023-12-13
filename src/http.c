@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <poll.h>
 #include <crypt.h>
 #include "lists.h"
 #include "ast.h"
@@ -25,7 +26,7 @@ const char *fileTable[TABLE_SIZE][2] = {
 };
 
 extern int logfile;
-extern char webSpacePath[50];
+extern char webSpacePath[MAX_NAME], charset[MAX_PARAM];
 
 Response createResponse() {
     Response resp;
@@ -47,7 +48,7 @@ void httpPage(int socket, Response *resp, const char *message) {
     // Cria a página HTML e armazena no conteúdo da resposta
     sprintf(resp->content, "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<title>%d</title>\n\t</head>\n\t<body>\n\t\t<h1>%d %s</h1>\n\t\t<p>%s</p>\n\t</body>\n</html>", resp->code, resp->code, resp->result, message);
     resp->size = strlen(resp->content); // Preenche parâmetro Content-Length
-    strcpy(resp->type, "text/html");    // Preenche parâmetro Content-Type
+    getMediaType(resp->type, ".html");    // Preenche parâmetro Content-Type
     int fields = PRINT_TYPE_LENGTH | PRINT_CONTENT;
     if (resp->code == AUTH_REQUIRED) fields |= PRINT_AUTH;
     flushResponse(socket, resp, fields);    
@@ -95,6 +96,10 @@ void getMediaType(char *type, char *filename) {
     for (i = 0; i < TABLE_SIZE; i++) {
         if (!strcmp(fileTable[i][0], extension)) {
             strcpy(type, fileTable[i][1]);
+            if (i <= 5) {
+                strcat(type, "; charset=");
+                strcat(type, charset);
+            }
             return;
         }
     }
@@ -147,9 +152,10 @@ void searchDir(char *path, Response *resp) {
                 resp->code = OK;  // Preenche parâmetro Status Code
                 read = 1;
                 resp->size = len;   // Preenche parâmetro Content-Length
-                strcpy(resp->type, "text/html");    // Preenche parâmetro Content-Type
+                getMediaType(resp->type, ".html");    // Preenche parâmetro Content-Type
                 strcpy(resp->lmdate, asctime(localtime(&file_stats.st_mtime))); // Preenche parâmetro Last-Modified
                 resp->lmdate[strlen(resp->lmdate)-1] = 0;   // Tira quebra de linha do final
+                break;
             }
         }
     }
@@ -310,12 +316,20 @@ void POST(char *res, Response *resp, int socket, Login *login) {
     char path[MAX_NAME + 1] = "", aux[MAX_NAME + 1] = "", salt[3] = "";
     char userName[MAX_AUTH+1], oldPasswd[MAX_AUTH+1], newPasswd[MAX_AUTH+1], confPasswd[MAX_AUTH+1];
     char *next, *load = (char *)malloc(CHUNK_SIZE), *encrypted;
-    int len, fd, match = 0;
+    int len = 0, fd, match = 0, n;
     off_t offset = 0;
+    struct pollfd fdset;
+    long unsigned int timeout = 1000;
 
-    // Lê o conteúdo enviado pelo POST
-    len = readContent(socket, &load);
-    if (len <= 0) {
+    // Adiciona o descritor do socket no set de descritores
+    fdset.events = POLLIN;
+    fdset.fd = socket;
+    // Aguarda o socket estar pronto para leitura
+    n = poll(&fdset, 1, timeout);
+    if ((n > 0) && (fdset.revents == POLLIN)) { 
+        len = readContent(socket, &load); // Lê o conteúdo enviado pelo POST
+    }
+    if (len <= 0 || n == 0) {
         resp->code = BAD_REQUEST;
         codeMsg(resp);
         httpPage(socket, resp, "Nenhuma informação recebida.");
@@ -390,10 +404,12 @@ void POST(char *res, Response *resp, int socket, Login *login) {
         offset = lseek(fd, offset, SEEK_SET); // Seta o offset para a posição da nova senha
         len = write(fd, encrypted, strlen(encrypted));  // Escreve a nova senha
         resp->code = OK;
+        codeMsg(resp);
         httpPage(socket, resp, "Senha atualizada com sucesso.");
     }
     else {  // Caso o usuário não seja encontrado OU senhas não coincidam
         resp->code = BAD_REQUEST;
+        codeMsg(resp);
         httpPage(socket, resp, "Usuário e/ou senha não conferem.");
     }
     free(load);
